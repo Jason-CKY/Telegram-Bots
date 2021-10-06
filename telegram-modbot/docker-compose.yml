@@ -1,0 +1,55 @@
+version: '3.7'
+
+services:
+  modbot:
+    build:
+      context: .
+      dockerfile: ./compose/Dockerfile
+    image: jasoncky96/telegram-modbot:1.0
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]
+    restart: always
+    networks:
+      - ngrok-nginx-net
+      - modbot
+    environment:
+      NGROK: ngrok-container
+    ports:
+      - 8080:80
+    volumes:
+      - type: bind
+        source: ./app
+        target: /code/app
+    depends_on: 
+      - db 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+    volumes:
+      - type: volume
+        source: modbot-db
+        target: /var/lib/postgresql/data
+    networks:
+      - modbot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  modbot-db:
+
+networks:
+  modbot:
+  ngrok-nginx-net:
+    external: true

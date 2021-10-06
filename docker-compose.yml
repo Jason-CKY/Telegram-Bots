@@ -1,0 +1,29 @@
+version: "3.7"
+
+services:
+  nginx:
+    image: nginx:latest
+    volumes:
+      - type: bind
+        source: ./nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+    restart: always
+    ports:
+      - 8000:80
+    networks:
+      - ngrok-nginx-net
+
+  ngrok:
+    container_name: ngrok-container
+    image: wernight/ngrok:latest
+    # image: wernight/ngrok:armhf # ARM version of the image, use this if running in raspi
+    command: ngrok http nginx:80
+    networks:
+      - ngrok-nginx-net
+    ports:
+      -  4040:4040
+
+networks:
+  ngrok-nginx-net: 
+    name: ngrok-nginx-net

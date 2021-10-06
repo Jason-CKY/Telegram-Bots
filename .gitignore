@@ -1,0 +1,5 @@
+__pycache__
+.env
+telegram-modbot/app/app.py
+telegram-modbot/app/clock.py
+telegram-modbot/app/credentials.py
