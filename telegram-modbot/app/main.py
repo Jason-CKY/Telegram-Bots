@@ -13,6 +13,5 @@ def read_root():
 @app.get("/modbot")
 def read_root():
     return {
-        "Hello": "World",
         "Ngrok url": os.getenv('PUBLIC_URL')
         }
