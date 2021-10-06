@@ -6,11 +6,17 @@ start-dev:
 	docker-compose up -d
 	cd telegram-modbot && docker-compose -f docker-compose.dev.yml up -d
 
+build-all:
+	make build-modbot
+
+build-modbot:
+	cd telegram-modbot && docker-compose build
+
 stop-modbot:
 	cd telegram-modbot && docker-compose down -v
 	
 restart-modbot:
-	cd telegram-modbot && docker-compose down -v
+	make stop-modbot
 	cd telegram-modbot && docker-compose up -d
 	
 destroy:
