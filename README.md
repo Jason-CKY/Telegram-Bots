@@ -8,6 +8,6 @@ Telegram bots written in FastAPI servers, with a nginx reverse proxy that is con
 make start
 ```
 
-## List of telegram bots:
+## List of telegram bots
 
 - telegram-modbot
