@@ -18,11 +18,11 @@ services:
     container_name: ngrok-container
     image: wernight/ngrok:latest
     # image: wernight/ngrok:armhf # ARM version of the image, use this if running in raspi
-    command: ngrok http nginx:80
+    environment:
+      NGROK_AUTH: $NGROK_AUTH
+      NGROK_PORT: nginx:80
     networks:
       - ngrok-nginx-net
-    ports:
-      -  4040:4040
 
 networks:
   ngrok-nginx-net: 
