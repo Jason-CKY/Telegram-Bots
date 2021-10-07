@@ -2,6 +2,7 @@ import os
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 BOT_USERNAME = os.getenv('BOT_USERNAME', "default-userbot")
+PUBLIC_URL = os.getenv('PUBLIC_URL')
 START_MESSAGE = r"I am a Bot that moderates chat groups. Just add me into a group chat and " + \
                 r"give me permissions to send polls and delete messages. Summon me in the " + \
                 r"group chat using '/delete@Jason_ModBot' and reply to the message in question. " + \

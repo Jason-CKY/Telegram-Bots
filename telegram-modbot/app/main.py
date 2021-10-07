@@ -1,11 +1,12 @@
 from typing import Optional
 import os, json, requests
-from fastapi import FastAPI, Request
+from app.credentials import *
+from fastapi import FastAPI, Request, Response, status
 from telegram import Bot
 from telegram.ext import ExtBot
 
 app = FastAPI()
-bot = ExtBot(token=os.getenv('BOT_TOKEN'))
+Bot = ExtBot(token=BOT_TOKEN)
 
 def write_json(data, fname):
     with open(fname, "w") as f:
@@ -13,7 +14,7 @@ def write_json(data, fname):
 
 def process_command(data, command):
     if command == '/start':
-        bot.send_message(data['message']['chat']['id'], START_MESSAGE)
+        Bot.send_message(data['message']['chat']['id'], START_MESSAGE)
     
 @app.get("/")
 def root():
@@ -24,14 +25,21 @@ def root():
 @app.get("/modbot")
 def ngrok_url():
     return {
-        "Ngrok url": os.getenv('PUBLIC_URL')
+        "Ngrok url": PUBLIC_URL
         }
 
-@app.post(f"/modbot/{os.getenv('BOT_TOKEN')}")
+@app.post(f"/modbot/{BOT_TOKEN}")
 async def respond(request:Request):
     req = await request.body()
-    req = json.loads(req)
-    write_json(req, "/code/app/output.json")
-    return {
-        "Ngrok url": os.getenv('PUBLIC_URL')
-        }
+    update = json.loads(req)
+    write_json(update, "/code/app/output.json")
+    if 'message' in update and 'text' in update['message']: # if its a text message
+        print("processing a message")
+        text = update['message']['text']
+        if update['message']['chat']['type'] == 'private':
+            if text == '/start':
+                msg = START_MESSAGE
+            else:
+                msg = "Commands only work on group chats."
+            Bot.send_message(update['message']['chat']['id'], msg)
+    return Response(status_code=status.HTTP_200_OK)
