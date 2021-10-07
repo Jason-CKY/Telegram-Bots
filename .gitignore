@@ -1,5 +1,7 @@
+.vscode
 __pycache__
+test.sh
 .env
 telegram-modbot/app/app.py
 telegram-modbot/app/clock.py
-telegram-modbot/app/credentials.py
+telegram-modbot/app/*.json

@@ -13,6 +13,8 @@ services:
       - modbot
     environment:
       NGROK: ngrok-container
+      # BOT_TOKEN: $BOT_TOKEN
+      BOT_TOKEN: $DEVBOT_TOKEN
     volumes:
       - type: bind
         source: ./app
