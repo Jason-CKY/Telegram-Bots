@@ -15,17 +15,19 @@ services:
       NGROK: ngrok-container
       # BOT_TOKEN: $BOT_TOKEN
       BOT_TOKEN: $DEVBOT_TOKEN
+
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+      POSTGRES_SERVER: db
+      POSTGRES_PORT: 5432
+      
     volumes:
       - type: bind
         source: ./app
         target: /code/app
     depends_on: 
       - db 
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   db:
     image: postgres:14
@@ -40,11 +42,6 @@ services:
         target: /var/lib/postgresql/data
     networks:
       - modbot
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 volumes:
   modbot-db:

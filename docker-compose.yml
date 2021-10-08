@@ -9,8 +9,8 @@ services:
         target: /etc/nginx/nginx.conf
         read_only: true
     restart: always
-    ports:
-      - 8000:80
+    # ports:
+    #   - 8000:80
     networks:
       - ngrok-nginx-net
 
