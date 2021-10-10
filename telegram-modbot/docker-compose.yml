@@ -36,6 +36,7 @@ services:
 
   db:
     image: postgres:14
+    # image: mongo:4.4.9-focal
     restart: always
     environment:
       POSTGRES_USER: $POSTGRES_USER
