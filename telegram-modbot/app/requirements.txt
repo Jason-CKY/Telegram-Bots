@@ -3,6 +3,7 @@ pydantic>=1.8.0,<2.0.0
 uvicorn>=0.15.0,<0.16.0
 python-telegram-bot>=13
 munch==2.5.0
+pymongo[srv]==3.11
 requests
 sqlalchemy
 psycopg2-binary

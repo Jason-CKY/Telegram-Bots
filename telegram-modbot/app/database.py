@@ -1,28 +1,22 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-
+import pymongo
 import os
 
 print()
-POSTGRES_USER = os.getenv('POSTGRES_USER')              ; print(POSTGRES_USER)
-POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')      ; print(POSTGRES_PASSWORD)
-POSTGRES_SERVER = os.getenv('POSTGRES_SERVER')          ; print(POSTGRES_SERVER)
-POSTGRES_PORT = os.getenv('POSTGRES_PORT')              ; print(POSTGRES_PORT)
-POSTGRES_DB = os.getenv('POSTGRES_DB')                  ; print(POSTGRES_DB)
+MONGO_USERNAME = os.getenv('MONGO_USERNAME')    # ; print(MONGO_USERNAME)
+MONGO_PASSWORD = os.getenv('MONGO_PASSWORD')    # ; print(MONGO_PASSWORD)
+MONGO_SERVER = os.getenv('MONGO_SERVER')        # ; print(MONGO_SERVER)
+MONGO_PORT = os.getenv('MONGO_PORT')            # ; print(MONGO_PORT)
+MONGO_DB = os.getenv('MONGO_DB')                # ; print(MONGO_DB)
 
 # https://docs.sqlalchemy.org/en/14/core/engines.html#database-urls
 # URL format: dialect+driver://username:password@host:port/database
-SQLALCHEMY_DATABASE_URL = f'postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}'
-print(SQLALCHEMY_DATABASE_URL)
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(engine)
-
-Base = declarative_base()
+MONGO_DATABASE_URL = f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@{MONGO_SERVER}:{MONGO_PORT}/"
+print(MONGO_DATABASE_URL)
 
 def get_db():
-    db =SessionLocal()
+    client = pymongo.MongoClient(MONGO_DATABASE_URL)
+    db = client[MONGO_DB]
     try:
         yield db
     finally:
-        db.close()
+        client.close()

@@ -16,11 +16,11 @@ services:
       # BOT_TOKEN: $BOT_TOKEN
       BOT_TOKEN: $DEVBOT_TOKEN
       
-      POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-      POSTGRES_DB: $POSTGRES_DB
-      POSTGRES_SERVER: db
-      POSTGRES_PORT: 5432
+      MONGO_USERNAME: $MONGO_USERNAME
+      MONGO_PASSWORD: $MONGO_PASSWORD
+      MONGO_DB: $MONGO_DB
+      MONGO_SERVER: db
+      MONGO_PORT: 27017    
 
     volumes:
       - type: bind
@@ -28,31 +28,19 @@ services:
         target: /code/app
     depends_on: 
       - db 
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   db:
-    image: postgres:14
-    # image: mongo:4.4.9-focal
+    image: mongo:4.4.9-focal
     restart: always
     environment:
-      POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-      POSTGRES_DB: $POSTGRES_DB
+      MONGO_INITDB_ROOT_USERNAME: $MONGO_USERNAME
+      MONGO_INITDB_ROOT_PASSWORD: $MONGO_PASSWORD
     volumes:
       - type: volume
         source: modbot-db
-        target: /var/lib/postgresql/data
+        target: /data/db
     networks:
       - modbot
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 volumes:
   modbot-db:

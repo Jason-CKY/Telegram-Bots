@@ -4,4 +4,5 @@ test.sh
 .env
 telegram-modbot/app/app.py
 telegram-modbot/app/clock.py
+telegram-modbot/docker-compose.mongodb.yml
 telegram-modbot/app/*.json

@@ -14,7 +14,7 @@ build-modbot:
 	cd telegram-modbot && docker-compose build
 
 stop-modbot:
-	cd telegram-modbot && docker-compose down -v
+	cd telegram-modbot && docker-compose down
 	
 restart-modbot:
 	make stop-modbot

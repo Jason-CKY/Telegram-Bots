@@ -1,9 +1,9 @@
-import os, json, requests
-from app.database import engine, get_db, Base
+import json, pymongo
 from typing import Optional
 from app import utils, commands
+from app.database import get_db
 from app.constants import *
-from fastapi import FastAPI, Request, Response, status
+from fastapi import FastAPI, Request, Response, status, Depends
 from munch import Munch
 
 
@@ -32,14 +32,28 @@ def root():
     }
 
 @app.get("/modbot")
-def ngrok_url():
+def ngrok_url(db: pymongo.database.Database = Depends(get_db)):
+    # create collection
+    mycol = db['test-collection']
+    mydict = { "name": "John", "address": "Highway 37" }
+    x = mycol.insert_one(mydict)
     return {
         "Ngrok url": PUBLIC_URL,
         "Bot Info": Bot.get_me().to_dict()
         }
 
+@app.get("/modbot/query")
+def ngrok_url(db: pymongo.database.Database = Depends(get_db)):
+    # create collection
+    mycol = db['test-collection']
+    print(list(mycol.find({})))
+    output = list(mycol.find({}, {'_id': 0}))
+    return {
+        "mongo db query": output
+        }
+
 @app.post(f"/modbot/{BOT_TOKEN}")
-async def respond(request:Request):
+async def respond(request:Request, db: pymongo.database.Database = Depends(get_db)):
     try:
         req = await request.body()
         update = json.loads(req)
