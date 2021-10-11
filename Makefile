@@ -19,6 +19,10 @@ stop-modbot:
 restart-modbot:
 	make stop-modbot
 	cd telegram-modbot && docker-compose up -d
+
+restart-modbot-dev:
+	make stop-modbot
+	cd telegram-modbot && docker-compose -f docker-compose.dev.yml up -d
 	
 destroy:
 	cd telegram-modbot && docker-compose down -v
