@@ -22,14 +22,24 @@ def extract_command(update:Munch):
     return update.message.text.strip().split(" ")[0].split("@")[0]
 
 def added_to_group(update: Munch):
-    return 'message' in update and \
+    return ('message' in update and \
         'new_chat_members' in update.message and \
-        Bot.get_me().id in [user.id for user in update.message.new_chat_members]
+        Bot.get_me().id in [user.id for user in update.message.new_chat_members]) or \
+            group_created(update)
 
 def removed_from_group(update: Munch):
-    return 'message' in update and \
-        'left_chat_member' in update.message and \
-        update.message.left_chat_member.id == Bot.get_me().id
+    return 'my_chat_member' in update and \
+        'new_chat_member' in update.my_chat_member and \
+        update.my_chat_member.new_chat_member.user.id == Bot.get_me().id and \
+        update.my_chat_member.new_chat_member.status == 'left'           
 
 def poll_updates(update: Munch):
     return 'poll' in update # updates on poll that Bot created
+
+def supergroup_created(update: Munch):
+    return 'message' in update and \
+        'supergroup_chat_created' in update.message
+
+def group_created(update: Munch):
+    return 'message' in update and \
+        'group_chat_created' in update.message

@@ -1,6 +1,7 @@
 import pymongo
 import os
 from munch import Munch
+from telegram import poll
 from app.constants import *
 
 print()
@@ -24,10 +25,30 @@ def get_db():
     finally:
         client.close()
 
+def query_for_chat_id(chat_id: int, db: pymongo.database.Database):
+    chat_collection = db[CHAT_COLLECTION]
+    query = list(chat_collection.find({ "chat_id": chat_id }))
+    if len(query) == 0:
+        raise AssertionError("This group chat ID does not exist in the database!")
+    
+    return query
+
+def query_for_poll_id(poll_id: str, db: pymongo.database.Database):
+    chat_collection = db[CHAT_COLLECTION]
+    query = list(chat_collection.find({ "messages.poll_id": poll_id }))
+    if len(query) == 0:
+        raise AssertionError("No such poll exists in this chat")
+
+    return query
+
+def delete_chat_collection(chat_id: int, db: pymongo.database.Database):
+    chat_collection = db[CHAT_COLLECTION]
+    chat_collection.delete_many({'chat_id': chat_id})
+
 def add_chat_collection(update: Munch, db: pymongo.database.Database):
     chat_collection = db[CHAT_COLLECTION]
     # delete the chat_id document if it exists
-    if len(list(chat_collection.find({'chat_id': update.message.chat.id}, {}))) != 0:
+    if len(list(chat_collection.find({'chat_id': update.message.chat.id}))) != 0:
         chat_collection.delete_many({'chat_id': update.message.chat.id})
     
     # create a new chat_id document with default config and empty list for deleting messages 
@@ -37,10 +58,56 @@ def add_chat_collection(update: Munch, db: pymongo.database.Database):
         "config": {}
     }
     x = chat_collection.insert_one(data)
-    assert x.acknowledged == True
 
 def update_chat_configs(update: Munch, db: pymongo.database.Database, chat_config: dict):
     chat_collection = db[CHAT_COLLECTION]
     query = { "chat_id": update.message.chat.id }
     newvalues = {"$set" : {"config": chat_config}}
     chat_collection.update_one(query, newvalues)
+
+def query_for_poll(chat_id: int, offending_message_id: int, db: pymongo.database.Database):
+    query = query_for_chat_id(chat_id, db)    
+    return [d for d in query[0]['messages'] if d.get('offending_message_id') == offending_message_id]
+
+def is_poll_exists(update: Munch, db: pymongo.database.Database):
+    offending_message_id = update.message.reply_to_message.message_id
+    chat_id = update.message.chat.id
+    poll_data = query_for_poll(chat_id, offending_message_id, db)
+    return len(poll_data) > 0
+
+def get_poll_message_id(update: Munch, db: pymongo.database.Database):
+    offending_message_id = update.message.reply_to_message.message_id
+    chat_id = update.message.chat.id
+    poll_data = query_for_poll(chat_id, offending_message_id, db)
+    return poll_data[0].get('poll_message_id')
+
+def get_config(chat_id: int, db: pymongo.database.Database):
+    '''
+    Queries db for the current chat config
+    Args:
+        update: Munch
+        db: pymongo.database.Database
+    Returns:
+        expiry: int
+        threshold: int
+    '''
+    query = query_for_chat_id(chat_id, db)   
+    return query[0]['config']['expiryTime'], query[0]['config']['threshold']
+
+def insert_chat_poll(update: Munch, poll_data: dict, db: pymongo.database.Database):
+    chat_collection = db[CHAT_COLLECTION]
+    query = { "chat_id": update.message.chat.id }
+    newvalues = {"$push" : {"messages": poll_data}}
+    chat_collection.update_one(query, newvalues)
+
+def get_chat_id_from_poll_id(poll_id: str, db: pymongo.database.Database):
+    query = query_for_poll_id(poll_id, db)
+    return query[0].get('chat_id')
+
+def get_message_id_from_poll_id(poll_id: int, db: pymongo.database.Database):
+    query = query_for_poll_id(poll_id, db)
+    return [d['message_id'] for d in query[0]['messages'] if d.get('poll_id') == poll_id][0]
+
+def get_poll_message_id_from_poll_id(poll_id: int, db: pymongo.database.Database):
+    query = query_for_poll_id(poll_id, db)
+    return [d['poll_message_id'] for d in query[0]['messages'] if d.get('poll_id') == poll_id][0]
