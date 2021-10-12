@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, Response, status, Depends
 from munch import Munch
 from telegram.error import BadRequest
 import random
+
 app = FastAPI()
 
 def write_json(data, fname):
@@ -35,19 +36,6 @@ def ngrok_url():
     return {
         "Ngrok url": PUBLIC_URL,
         "Bot Info": Bot.get_me().to_dict()
-        }
-
-@app.get("/modbot/insert")
-def ngrok_url(db: pymongo.database.Database = Depends(get_db)):
-    # create collection
-    mycol = db['test-collection']
-    mydict = { "name": "John", "address": "Highway 37" , "timestamp": time.time()}
-    x = mycol.insert_one(mydict)
-    output = list(mycol.find({}, {'_id': 0}))
-    return {
-        "Ngrok url": PUBLIC_URL,
-        "Bot Info": Bot.get_me().to_dict(),
-        "db output": output
         }
 
 @app.post(f"/modbot/{BOT_TOKEN}")
