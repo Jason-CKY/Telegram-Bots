@@ -33,7 +33,7 @@ def delete(update: Munch, db: pymongo.database.Database):
             poll_data = {
                 "poll_id": message.poll.id,
                 "poll_message_id": message.message_id,
-                "message_id": update.message.message_id,
+                "offending_message_id": update.message.reply_to_message.message_id,
                 "started_at": time.time()
             }
             database.insert_chat_poll(update, poll_data, db)

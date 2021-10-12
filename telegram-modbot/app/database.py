@@ -45,6 +45,15 @@ def delete_chat_collection(chat_id: int, db: pymongo.database.Database):
     chat_collection = db[CHAT_COLLECTION]
     chat_collection.delete_many({'chat_id': chat_id})
 
+def remove_message_from_db(chat_id: int, offending_message_id: int, db: pymongo.database.Database):
+    query = query_for_chat_id(chat_id, db)[0]['messages']
+    new_messages = [q for q in query if q['offending_message_id'] != offending_message_id]
+    chat_collection = db[CHAT_COLLECTION]
+    query = { "chat_id": chat_id }
+    newvalues = {"$set" : {"messages": new_messages}}
+    chat_collection.update_one(query, newvalues)
+    
+
 def add_chat_collection(update: Munch, db: pymongo.database.Database):
     chat_collection = db[CHAT_COLLECTION]
     # delete the chat_id document if it exists
@@ -104,10 +113,27 @@ def get_chat_id_from_poll_id(poll_id: str, db: pymongo.database.Database):
     query = query_for_poll_id(poll_id, db)
     return query[0].get('chat_id')
 
-def get_message_id_from_poll_id(poll_id: int, db: pymongo.database.Database):
+def get_offending_message_id_from_poll_id(poll_id: int, db: pymongo.database.Database):
     query = query_for_poll_id(poll_id, db)
-    return [d['message_id'] for d in query[0]['messages'] if d.get('poll_id') == poll_id][0]
+    return [d['offending_message_id'] for d in query[0]['messages'] if d.get('poll_id') == poll_id][0]
 
 def get_poll_message_id_from_poll_id(poll_id: int, db: pymongo.database.Database):
     query = query_for_poll_id(poll_id, db)
     return [d['poll_message_id'] for d in query[0]['messages'] if d.get('poll_id') == poll_id][0]
+
+def update_chat_id(mapping: dict, db: pymongo.database.Database):
+    '''
+    Update db collection chat id to supergroup chat id
+    Args:
+        mapping: Dict 
+            {
+                "chat_id": int
+                "supergroup_chat_id": id
+            }
+        db: pymongo.database.Database
+    '''
+    chat_collection = db[CHAT_COLLECTION]
+    query = { "chat_id": mapping['chat_id'] }
+    newvalues = {"$set" : {"chat_id": mapping['supergroup_chat_id']}}
+    chat_collection.update_one(query, newvalues)
+    

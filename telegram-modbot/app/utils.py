@@ -36,6 +36,9 @@ def removed_from_group(update: Munch):
 def poll_updates(update: Munch):
     return 'poll' in update # updates on poll that Bot created
 
+def is_poll_open(update: Munch):
+    return not update.poll.is_closed
+
 def supergroup_created(update: Munch):
     return 'message' in update and \
         'supergroup_chat_created' in update.message
@@ -43,3 +46,15 @@ def supergroup_created(update: Munch):
 def group_created(update: Munch):
     return 'message' in update and \
         'group_chat_created' in update.message
+
+def group_upgraded_to_supergroup(update: Munch):
+    return 'message' in update and \
+        'migrate_to_chat_id' in update.message
+
+def get_migrated_chat_mapping(update: Munch):
+    chat_id = update.message.chat.id
+    supergroup_chat_id = update.message.migrate_to_chat_id
+    return {
+        "chat_id": chat_id,
+        "supergroup_chat_id": supergroup_chat_id
+    }
