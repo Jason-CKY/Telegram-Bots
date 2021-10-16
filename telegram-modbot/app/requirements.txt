@@ -1,10 +1,8 @@
-fastapi>=0.68.0,<0.69.0
-pydantic>=1.8.0,<2.0.0
-uvicorn>=0.15.0,<0.16.0
-python-telegram-bot>=13
+fastapi==0.68.2
+pydantic==1.8.2
+uvicorn==0.15.0
+python-telegram-bot==13.7
 munch==2.5.0
 pymongo[srv]==3.11
-schedule
-requests
-sqlalchemy
-psycopg2-binary
+APScheduler==3.6.3
+requests==2.26.0

@@ -13,7 +13,6 @@ services:
       - modbot
     environment:
       NGROK: ngrok-container
-      # BOT_TOKEN: $BOT_TOKEN
       BOT_TOKEN: $DEVBOT_TOKEN
 
       MONGO_USERNAME: $MONGO_USERNAME

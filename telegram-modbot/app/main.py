@@ -1,11 +1,10 @@
-import json, pymongo, time
+import json, pymongo, time, random
 from app import utils, commands, database
 from app.database import get_db
 from app.constants import *
 from fastapi import FastAPI, Request, Response, status, Depends
 from munch import Munch
 from telegram.error import BadRequest
-import random
 
 app = FastAPI()
 
@@ -54,6 +53,7 @@ def ngrok_url():
 
 @app.get("/modbot/schedule_test")
 def schedule():
+
     return {
         "test": "test"
     }
