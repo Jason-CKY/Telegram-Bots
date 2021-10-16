@@ -2,10 +2,7 @@ version: '3.7'
 
 services:
   modbot:
-    build:
-      context: .
-      dockerfile: ./compose/Dockerfile
-    image: "jasoncky96/telegram-modbot:${VERSION}"
+    image: jasoncky96/telegram-modbot:latest
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
     restart: always
     networks:
