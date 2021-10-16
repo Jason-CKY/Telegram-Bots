@@ -1,0 +1,21 @@
+{
+    "chat_id": 15112214593,
+    "config": {
+        "expiryTime": 120,
+        "threshold": 4
+    },
+    "messages": [
+        {
+            "poll_id": 44123,
+            "poll_message_id": 23523231,
+            "offending_message_id": 35235231,
+            "started_at": "test1"
+        },
+        {
+            "poll_id": 51325,
+            "poll_message_id": 2122389,
+            "offending_message_id": 54561313,
+            "started_at": "test2"
+        }
+    ]
+}

@@ -12,9 +12,9 @@ START_MESSAGE = r"I am a Bot that moderates chat groups. Just add me into a grou
                 r"in favour of deleting the message >= certain threshold, I will close the poll and delete the message in question. " + \
                 r"Polls are only active for the expiry time the group admin sets, and requests will need to be resent." 
 
-POLL_EXPIRY = 600
+POLL_EXPIRY = 120
 MAX_EXPIRY = 600
-MIN_EXPIRY = 60
+MIN_EXPIRY = 10
 DEV_CHAT_ID = 403432365
 
 # import this line to avoid importing commands before

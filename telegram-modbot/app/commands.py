@@ -1,7 +1,9 @@
 import pymongo, time
+from datetime import datetime, timedelta
 from munch import Munch
 from app.constants import Bot, START_MESSAGE, DEV_CHAT_ID
 from app.database import CHAT_COLLECTION, MIN_EXPIRY, MAX_EXPIRY
+from app.scheduler import scheduler
 from app import database, utils
 
 def start(update: Munch, db: pymongo.database.Database):
@@ -38,7 +40,8 @@ def delete(update: Munch, db: pymongo.database.Database):
                 "started_at": time.time()
             }
             database.insert_chat_poll(update, poll_data, db)
-
+            scheduler.add_job(utils.settle_poll, 'date', run_date=datetime.now() + timedelta(seconds=expiry), args=[message.poll.id])
+            
 def get_config(update: Munch, db: pymongo.database.Database):
     chat_collection = db[CHAT_COLLECTION]
     query = list(chat_collection.find({"chat_id": update.message.chat.id}, {"_id": 0, "config": 1}))

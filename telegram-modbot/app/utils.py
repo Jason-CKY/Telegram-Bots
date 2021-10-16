@@ -1,4 +1,5 @@
 from app.constants import *
+from app import database
 from munch import Munch
 
 def is_text_message(update: Munch):
@@ -92,3 +93,14 @@ def get_group_first_message(chat_config: dict):
     return f"{START_MESSAGE}\n\nThe default threshold is half the number of members in this group ({chat_config['threshold']}), " +\
                 f"and default expiration time is {chat_config['expiryTime']} seconds before poll times out.\n" +\
                 get_config_command_message()
+
+def settle_poll(poll_id: str):
+    client = database.get_client()
+    db = client[database.MONGO_DB]
+    chat_id = database.get_chat_id_from_poll_id(poll_id, db)
+    poll_message_id = database.get_poll_message_id_from_poll_id(poll_id, db)
+    offending_message_id = database.get_offending_message_id_from_poll_id(poll_id, db)
+    Bot.stop_poll(chat_id, poll_message_id)
+    database.remove_message_from_db(chat_id, offending_message_id, db)
+    Bot.send_message(chat_id, "Threshold votes not reached before poll expiry.")
+    client.close()

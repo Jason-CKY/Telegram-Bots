@@ -17,6 +17,9 @@ CHAT_COLLECTION = 'chat_collection'
 MONGO_DATABASE_URL = f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@{MONGO_SERVER}:{MONGO_PORT}/"
 print(MONGO_DATABASE_URL)
 
+def get_client():
+    return pymongo.MongoClient(MONGO_DATABASE_URL)
+
 def get_db():
     client = pymongo.MongoClient(MONGO_DATABASE_URL)
     db = client[MONGO_DB]

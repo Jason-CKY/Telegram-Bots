@@ -1,5 +1,6 @@
 import json, pymongo, time, random
 from app import utils, commands, database
+from app.scheduler import scheduler
 from app.database import get_db
 from app.constants import *
 from fastapi import FastAPI, Request, Response, status, Depends
@@ -7,6 +8,7 @@ from munch import Munch
 from telegram.error import BadRequest
 
 app = FastAPI()
+scheduler.start()
 
 def write_json(data, fname):
     with open(fname, "w") as f:
@@ -53,14 +55,13 @@ def ngrok_url():
 
 @app.get("/modbot/schedule_test")
 def schedule():
-
+    print(scheduler.print_jobs())
     return {
         "test": "test"
     }
 
 @app.post(f"/modbot/{BOT_TOKEN}")
 async def respond(request:Request, db: pymongo.database.Database = Depends(get_db)):
-    # return Response(status_code=status.HTTP_200_OK)
     try:
         req = await request.body()
         update = json.loads(req)
