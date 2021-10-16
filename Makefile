@@ -20,6 +20,10 @@ deploy-modbot-image:
 	cd telegram-modbot && docker buildx build --push --tag jasoncky96/telegram-modbot:$(MODBOT_VERSION) --file ./compose/Dockerfile --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
 	cd telegram-modbot && docker buildx build --push --tag jasoncky96/telegram-modbot:latest --file ./compose/Dockerfile --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
 
+stop-all:
+	make stop-modbot
+	docker-compose down
+
 stop-modbot:
 	cd telegram-modbot && docker-compose down
 	
