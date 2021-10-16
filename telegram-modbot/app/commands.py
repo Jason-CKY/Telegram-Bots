@@ -1,7 +1,7 @@
 import pymongo, time
 from datetime import datetime, timedelta
 from munch import Munch
-from app.constants import Bot, START_MESSAGE, DEV_CHAT_ID
+from app.constants import SUPPORT_MESSAGE, START_MESSAGE, DEV_CHAT_ID, Bot
 from app.database import CHAT_COLLECTION, MIN_EXPIRY, MAX_EXPIRY
 from app.scheduler import scheduler
 from app import database, utils
@@ -11,6 +11,9 @@ def start(update: Munch, db: pymongo.database.Database):
     What to print on the /start command
     '''
     Bot.send_message(update.message.chat.id, START_MESSAGE)
+
+def support(update: Munch, db: pymongo.database.Database):
+    Bot.send_message(update.message.chat.id, SUPPORT_MESSAGE)
 
 def delete(update: Munch, db: pymongo.database.Database):
     if 'reply_to_message' not in update.message:

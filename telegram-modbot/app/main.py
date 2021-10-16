@@ -53,13 +53,6 @@ def ngrok_url():
         "Bot Info": Bot.get_me().to_dict()
         }
 
-@app.get("/modbot/schedule_test")
-def schedule():
-    print(scheduler.print_jobs())
-    return {
-        "test": "test"
-    }
-
 @app.post(f"/modbot/{BOT_TOKEN}")
 async def respond(request:Request, db: pymongo.database.Database = Depends(get_db)):
     try:

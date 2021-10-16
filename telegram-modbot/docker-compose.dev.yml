@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/Dockerfile
-    image: jasoncky96/telegram-modbot:1.0
+    image: "jasoncky96/telegram-modbot:${VERSION}"
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]
     restart: always
     networks:
@@ -14,13 +14,13 @@ services:
     environment:
       NGROK: ngrok-container
       BOT_TOKEN: $DEVBOT_TOKEN
+      DEV_CHAT_ID: $DEV_CHAT_ID
 
       MONGO_USERNAME: $MONGO_USERNAME
       MONGO_PASSWORD: $MONGO_PASSWORD
       MONGO_DB: $MONGO_DB
       MONGO_SERVER: db
       MONGO_PORT: 27017    
-      
     volumes:
       - type: bind
         source: ./app
