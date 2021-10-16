@@ -97,25 +97,25 @@ def settle_poll(poll_id: str):
     offending_message_id = database.get_offending_message_id_from_poll_id(poll_id, db)
     _, threshold = database.get_config(chat_id, db)
     database.remove_message_from_db(chat_id, offending_message_id, db)
-    Bot.send_message(chat_id, "Poll expired. Stopping poll and counting votes...")
+    message = Bot.send_message(chat_id, "Poll expired. Stopping poll and counting votes...")
     try:
         poll_results = Bot.stop_poll(chat_id, poll_message_id)
     except BadRequest as e:
         error_msg = getattr(e, 'message', str(e))
-        Bot.send_message(chat_id, error_msg)
+        Bot.edit_message_text(chat_id=chat_id, message_id=message.message_id, text=error_msg)
         client.close()
         return
     delete_count = [d.voter_count for d in poll_results.options if d.text == 'Delete'][0]
     if delete_count >= threshold:
         try:
             Bot.delete_message(chat_id, offending_message_id)
-            Bot.send_message(chat_id, "Offending message has been deleted.")
+            Bot.edit_message_text(chat_id=chat_id, message_id=message.message_id, text="Offending message has been deleted.")
         except BadRequest as e:
             error_msg = getattr(e, 'message', str(e))
             if "Message can't be deleted" in error_msg:
                 error_msg += "\nPlease check if I have permission to delete group messages."
-            Bot.send_message(chat_id, error_msg)
+            Bot.edit_message_text(chat_id=chat_id, message_id=message.message_id, text=error_msg)
     else:
-        Bot.send_message(chat_id, "Threshold votes not reached before poll expiry.")
+        Bot.edit_message_text(chat_id=chat_id, message_id=message.message_id, text="Threshold votes not reached before poll expiry.")
     
     client.close()
