@@ -1,4 +1,4 @@
-MODBOT_VERSION ?= 1.1
+MODBOT_VERSION ?= 1.2
 
 start:
 	docker-compose up -d

@@ -1,6 +1,7 @@
 from app.constants import *
 from app import database
 from munch import Munch
+from telegram.ext import ExtBot
 
 def is_text_message(update: Munch):
     return 'message' in update and 'text' in update.message
@@ -78,21 +79,15 @@ def get_default_chat_configs(update: Munch):
 def get_config_message(threshold: int, expiryTime: int):
     return f"Current Group Configs:\n\tThreshold:{threshold}\n\tExpiry:{expiryTime}"
 
-def get_config_command_message():
-    bot_username = Bot.get_me().username
-    return  f"Get configs by typing '/getconfig@{bot_username}'. \n" +\
-            f"Set your own threshold by typing '/setthreshold@{bot_username} <number>'\n " +\
-            f"Set your own threshold by typing '/setexpiry@{bot_username} <number>'" 
-
 def get_initialise_config_message(chat_config: dict):
     return f"This chat is not within my database, initialising database with the following config. \n" + \
             get_config_message(chat_config['threshold'], chat_config['expiryTime']) + '\n' +\
-            get_config_command_message()
+            CONFIG_COMMAND_MESSAGE
 
 def get_group_first_message(chat_config: dict):
     return f"{START_MESSAGE}\n\nThe default threshold is half the number of members in this group ({chat_config['threshold']}), " +\
                 f"and default expiration time is {chat_config['expiryTime']} seconds before poll times out.\n" +\
-                get_config_command_message()
+                CONFIG_COMMAND_MESSAGE
 
 def settle_poll(poll_id: str):
     client = database.get_client()

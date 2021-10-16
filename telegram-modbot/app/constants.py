@@ -4,12 +4,18 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 Bot = ExtBot(token=BOT_TOKEN)
 
 PUBLIC_URL = os.getenv('PUBLIC_URL')
-START_MESSAGE = r"I am a Bot that moderates chat groups. Just add me into a group chat and " + \
-                r"give me permissions to send polls and delete messages. Summon me in the " + \
-                f"group chat using '/delete@{Bot.get_me().username}' and reply to the message in question. " + \
-                r"I will then send a poll to collect other members' opinions. If the number of votes " + \
-                r"in favour of deleting the message >= certain threshold, I will close the poll and delete the message in question. " + \
-                r"Polls are only active for the expiry time the group admin sets, and requests will need to be resent." 
+CONFIG_COMMAND_MESSAGE = f"Get configs by typing '/getconfig@{Bot.get_me().username}'. \n" +\
+                        f"Set your own threshold by typing '/setthreshold@{Bot.get_me().username} <number>'\n " +\
+                        f"Set your own threshold by typing '/setexpiry@{Bot.get_me().username} <number>'" 
+
+START_MESSAGE = f"I am a Bot that moderates chat groups. Just add me into a group chat and " +\
+                f"give me permissions to send polls and delete messages. Summon me in the " +\
+                f"group chat using '/delete@{Bot.get_me().username}' and reply to the message in question. " +\
+                f"I will then send a poll to collect other members' opinions. If the number of votes " +\
+                f"in favour of deleting the message >= certain threshold, I will close the poll and delete the message in question." +\
+                f"Polls are only active for the expiry time the group admin sets, and requests will need to be resent." +\
+                CONFIG_COMMAND_MESSAGE
+
 SUPPORT_MESSAGE =   f"My source code is hosted on https://github.com/Jason-CKY/Telegram-Bots/tree/main. Consider \n" +\
                     f"Post any issues with this bot on the github link, and feel free to contribute to the source code with a " +\
                     f"pull request."

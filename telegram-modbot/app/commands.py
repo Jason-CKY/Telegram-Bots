@@ -56,6 +56,9 @@ def get_config(update: Munch, db: pymongo.database.Database):
     Bot.send_message(update.message.chat.id, msg)
 
 def set_threshold(update: Munch, db: pymongo.database.Database):
+    if update.message['from'].id not in [user.user.id for user in Bot.get_chat_administrators(update.message.chat.id)]:
+        Bot.send_message(update.message.chat.id, "Only chat administrators allowed to set configs")
+        return
     if (len(update.message.text.strip().split(" ")) == 2 and update.message.text.strip().split(" ")[1].lstrip('-').isdigit()):
         threshold = int(update.message.text.strip().split(" ")[1])
         print(threshold)
@@ -71,6 +74,9 @@ def set_threshold(update: Munch, db: pymongo.database.Database):
             Bot.send_message(update.message.chat.id, f"threshold set as {threshold}")
 
 def set_expiry(update: Munch, db: pymongo.database.Database):
+    if update.message['from'].id not in [user.user.id for user in Bot.get_chat_administrators(update.message.chat.id)]:
+        Bot.send_message(update.message.chat.id, "Only chat administrators allowed to set configs")
+        return
     if (len(update.message.text.strip().split(" ")) == 2 and update.message.text.strip().split(" ")[1].lstrip('-').isdigit()):
         expiry = int(update.message.text.strip().split(" ")[1])
         if expiry > MAX_EXPIRY:
