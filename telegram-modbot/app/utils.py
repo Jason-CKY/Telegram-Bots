@@ -1,7 +1,6 @@
 from app.constants import *
 from app import database
 from munch import Munch
-from telegram.ext import ExtBot
 
 def is_text_message(update: Munch):
     return 'message' in update and 'text' in update.message
