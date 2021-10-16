@@ -95,11 +95,15 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
                 try:
                     Bot.delete_message(chat_id, offending_message_id)
                     Bot.stop_poll(chat_id, poll_message_id)
+                    job_id = database.get_job_id_from_poll_id(update.poll.id, db)
+                    scheduler.remove_job(job_id=job_id)
                     database.remove_message_from_db(chat_id, offending_message_id, db)
                     Bot.send_message(chat_id, "Offending message has been deleted.")
                 except BadRequest as e:
-                    msg = f"Error in deleting message. Please check if I have permission to delete group messages."
-                    Bot.send_message(chat_id, msg)
+                    error_msg = getattr(e, 'message', str(e))
+                    if "Message can't be deleted" in error_msg:
+                        error_msg += "\nPlease check if I have permission to delete group messages."
+                    Bot.send_message(chat_id, error_msg)
     except Exception as e:
         Bot.send_message(DEV_CHAT_ID, getattr(e, 'message', str(e)))
             

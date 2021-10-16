@@ -115,6 +115,10 @@ def insert_chat_poll(update: Munch, poll_data: dict, db: pymongo.database.Databa
     newvalues = {"$push" : {"messages": poll_data}}
     chat_collection.update_one(query, newvalues)
 
+def get_job_id_from_poll_id(poll_id: str, db: pymongo.database.Database):
+    query = query_for_poll_id(poll_id, db)
+    return [d['job_id'] for d in query[0]['messages'] if d.get('poll_id') == poll_id][0]
+
 def get_chat_id_from_poll_id(poll_id: str, db: pymongo.database.Database):
     query = query_for_poll_id(poll_id, db)
     return query[0].get('chat_id')

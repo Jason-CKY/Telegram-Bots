@@ -1,4 +1,4 @@
-import pymongo, time
+import pymongo, time, random
 from datetime import datetime, timedelta
 from munch import Munch
 from app.constants import SUPPORT_MESSAGE, START_MESSAGE, DEV_CHAT_ID, Bot
@@ -30,20 +30,23 @@ def delete(update: Munch, db: pymongo.database.Database):
             question = f'Poll to delete the message above. This poll will last for {expiry} seconds, ' + \
                             f'if >={threshold} of the group members vote to delete within {expiry} seconds, the replied' + \
                             f'message shall be deleted.'
+            
             kwargs = {
                 "question": question,
                 "options": ["Delete", "Don't Delete"],
                 'reply_to_message_id': update.message.reply_to_message.message_id
             }
             message = Bot.send_poll(update.message.chat.id, **kwargs)
+            job_id = str(update.message.chat.id) + str(random.randint(0, 10)) + str(datetime.now())
+            scheduler.add_job(utils.settle_poll, 'date', run_date=datetime.now() + timedelta(seconds=expiry), args=[message.poll.id], id=job_id)
             poll_data = {
                 "poll_id": message.poll.id,
                 "poll_message_id": message.message_id,
                 "offending_message_id": update.message.reply_to_message.message_id,
-                "started_at": time.time()
+                "started_at": time.time(),
+                'job_id': job_id
             }
             database.insert_chat_poll(update, poll_data, db)
-            scheduler.add_job(utils.settle_poll, 'date', run_date=datetime.now() + timedelta(seconds=expiry), args=[message.poll.id])
             
 def get_config(update: Munch, db: pymongo.database.Database):
     chat_collection = db[CHAT_COLLECTION]
