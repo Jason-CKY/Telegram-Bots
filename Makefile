@@ -2,12 +2,12 @@ MODBOT_VERSION ?= 1.1
 
 start:
 	docker-compose up -d
+	cd telegram-modbot && docker-compose pull modbot
 	cd telegram-modbot && docker-compose up -d
 
 start-dev:
 # sleep command is to give some time for fastapi server to be set up before curling to set webhook
 	docker-compose -f docker-compose.dev.yml up -d
-	cd telegram-modbot && docker-compose pull modbot
 	cd telegram-modbot && docker-compose -f docker-compose.dev.yml up --build -d
 
 build-all:
