@@ -1,0 +1,52 @@
+version: '3.7'
+
+services:
+  modbot:
+    build:
+      context: .
+      dockerfile: ./compose/Dockerfile
+    image: "jasoncky96/telegram-reminderbot:latest"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]
+    restart: always
+    networks:
+      - ngrok-nginx-net
+      - modbot
+    environment:
+      NGROK: ngrok-container
+      BOT_TOKEN: $DEVBOT_TOKEN
+      DEV_CHAT_ID: $DEV_CHAT_ID
+
+      MONGO_USERNAME: $MONGO_USERNAME
+      MONGO_PASSWORD: $MONGO_PASSWORD
+      MONGO_DB: $MONGO_DB
+      MONGO_SERVER: db
+      MONGO_PORT: 27017    
+    volumes:
+      - type: bind
+        source: ./app
+        target: /code/app
+    depends_on: 
+      - db 
+
+  db:
+    image: mongo:4.4.9-focal
+    restart: always
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: $MONGO_USERNAME
+      MONGO_INITDB_ROOT_PASSWORD: $MONGO_PASSWORD
+    volumes:
+      - type: volume
+        source: modbot-db
+        target: /data/db
+    networks:
+      - modbot
+
+volumes:
+  modbot-db:
+
+networks:
+  modbot:
+  ngrok-nginx-net:
+    external: true

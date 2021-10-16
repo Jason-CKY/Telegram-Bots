@@ -2,5 +2,5 @@
 __pycache__
 test.sh
 .env
-telegram-modbot/docker-compose.mongodb.yml
 telegram-modbot/app/output.json
+telegram-reminderbot/app/output.json
