@@ -2,7 +2,7 @@ import pymongo, time
 from munch import Munch
 from app.constants import Bot, START_MESSAGE, DEV_CHAT_ID
 from app.database import CHAT_COLLECTION, MIN_EXPIRY, MAX_EXPIRY
-from app import database
+from app import database, utils
 
 def start(update: Munch, db: pymongo.database.Database):
     '''
@@ -27,7 +27,8 @@ def delete(update: Munch, db: pymongo.database.Database):
                             f'message shall be deleted.'
             kwargs = {
                 "question": question,
-                "options": ["Delete", "Don't Delete"]
+                "options": ["Delete", "Don't Delete"],
+                'reply_to_message_id': update.message.reply_to_message.message_id
             }
             message = Bot.send_poll(update.message.chat.id, **kwargs)
             poll_data = {
@@ -45,7 +46,7 @@ def get_config(update: Munch, db: pymongo.database.Database):
         Bot.send_message(DEV_CHAT_ID, f"Can't find config for group chat id: {update.message.chat.id}")
         return
     config = query[0]['config']
-    msg = f"Current Group Configs:\n\tThreshold:{config['threshold']}\n\tExpiry:{config['expiryTime']}"
+    msg = utils.get_config_message(config['threshold'], config['expiryTime'])
     Bot.send_message(update.message.chat.id, msg)
 
 def set_threshold(update: Munch, db: pymongo.database.Database):
@@ -60,7 +61,7 @@ def set_threshold(update: Munch, db: pymongo.database.Database):
             chat_collection = db[CHAT_COLLECTION]
             chat_config = chat_collection.find({"chat_id": update.message.chat.id}, {"_id": 0, "config": 1})[0]['config']    
             chat_config['threshold'] = threshold
-            database.update_chat_configs(update, db, chat_config)
+            database.set_chat_configs(update, db, chat_config)
             Bot.send_message(update.message.chat.id, f"threshold set as {threshold}")
 
 def set_expiry(update: Munch, db: pymongo.database.Database):
@@ -74,5 +75,5 @@ def set_expiry(update: Munch, db: pymongo.database.Database):
             chat_collection = db[CHAT_COLLECTION]
             chat_config = chat_collection.find({"chat_id": update.message.chat.id}, {"_id": 0, "config": 1})[0]['config']    
             chat_config['expiryTime'] = expiry
-            database.update_chat_configs(update, db, chat_config)
+            database.set_chat_configs(update, db, chat_config)
             Bot.send_message(update.message.chat.id, f"expiry set as {expiry}")

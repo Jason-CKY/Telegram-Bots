@@ -25,6 +25,10 @@ def get_db():
     finally:
         client.close()
 
+def config_exists(chat_id: int, db: pymongo.database.Database):
+    chat_collection = db[CHAT_COLLECTION]
+    return list(chat_collection.find({ "chat_id": chat_id }, {"_id": 0, "config": 1})) == []
+
 def query_for_chat_id(chat_id: int, db: pymongo.database.Database):
     chat_collection = db[CHAT_COLLECTION]
     query = list(chat_collection.find({ "chat_id": chat_id }))
@@ -53,7 +57,6 @@ def remove_message_from_db(chat_id: int, offending_message_id: int, db: pymongo.
     newvalues = {"$set" : {"messages": new_messages}}
     chat_collection.update_one(query, newvalues)
     
-
 def add_chat_collection(update: Munch, db: pymongo.database.Database):
     chat_collection = db[CHAT_COLLECTION]
     # delete the chat_id document if it exists
@@ -68,7 +71,7 @@ def add_chat_collection(update: Munch, db: pymongo.database.Database):
     }
     x = chat_collection.insert_one(data)
 
-def update_chat_configs(update: Munch, db: pymongo.database.Database, chat_config: dict):
+def set_chat_configs(update: Munch, db: pymongo.database.Database, chat_config: dict):
     chat_collection = db[CHAT_COLLECTION]
     query = { "chat_id": update.message.chat.id }
     newvalues = {"$set" : {"config": chat_config}}

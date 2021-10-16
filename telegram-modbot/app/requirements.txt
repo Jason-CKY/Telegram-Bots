@@ -4,6 +4,7 @@ uvicorn>=0.15.0,<0.16.0
 python-telegram-bot>=13
 munch==2.5.0
 pymongo[srv]==3.11
+schedule
 requests
 sqlalchemy
 psycopg2-binary

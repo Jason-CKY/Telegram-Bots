@@ -58,3 +58,37 @@ def get_migrated_chat_mapping(update: Munch):
         "chat_id": chat_id,
         "supergroup_chat_id": supergroup_chat_id
     }
+
+def get_default_chat_configs(update: Munch):
+    '''
+    Get default expiryTime and threshold.
+    Return
+        chat_config (Dict): {
+            "expiryTime": POLL_EXPIRY
+            "threshold": half the number of members in the group
+        }
+    '''
+    num_members = Bot.get_chat_member_count(update.message.chat.id)
+    return {
+        "expiryTime": POLL_EXPIRY,
+        "threshold": int(num_members/2)
+    }
+
+def get_config_message(threshold: int, expiryTime: int):
+    return f"Current Group Configs:\n\tThreshold:{threshold}\n\tExpiry:{expiryTime}"
+
+def get_config_command_message():
+    bot_username = Bot.get_me().username
+    return  f"Get configs by typing '/getconfig@{bot_username}'. \n" +\
+            f"Set your own threshold by typing '/setthreshold@{bot_username} <number>'\n " +\
+            f"Set your own threshold by typing '/setexpiry@{bot_username} <number>'" 
+
+def get_initialise_config_message(chat_config: dict):
+    return f"This chat is not within my database, initialising database with the following config. \n" + \
+            get_config_message(chat_config['threshold'], chat_config['expiryTime']) + '\n' +\
+            get_config_command_message()
+
+def get_group_first_message(chat_config: dict):
+    return f"{START_MESSAGE}\n\nThe default threshold is half the number of members in this group ({chat_config['threshold']}), " +\
+                f"and default expiration time is {chat_config['expiryTime']} seconds before poll times out.\n" +\
+                get_config_command_message()

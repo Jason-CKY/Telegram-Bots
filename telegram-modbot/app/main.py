@@ -13,6 +13,20 @@ def write_json(data, fname):
     with open(fname, "w") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
+def initialise_configs_if_not_exists(update: Munch, db: pymongo.database.Database):
+    '''
+    Triggered when a message is sent in a group the bot is in. Checks for the chat id within mongodb for configs,
+    and creates the chat collection with default configs if it does not exists.
+    '''
+    if database.config_exists(update.message.chat.id, db):
+        database.add_chat_collection(update, db)
+        # send message stating the default calculated threshold and how to change it for administrators
+        chat_config = utils.get_default_chat_configs(update)
+        database.set_chat_configs(update, db, chat_config)
+
+        msg = utils.get_initialise_config_message(chat_config)
+        Bot.send_message(update.message.chat.id, msg)
+
 def process_command(update:Munch, db: pymongo.database.Database):
     command = utils.extract_command(update)
     return COMMANDS[command](update, db)
@@ -38,6 +52,12 @@ def ngrok_url():
         "Bot Info": Bot.get_me().to_dict()
         }
 
+@app.get("/modbot/schedule_test")
+def schedule():
+    return {
+        "test": "test"
+    }
+
 @app.post(f"/modbot/{BOT_TOKEN}")
 async def respond(request:Request, db: pymongo.database.Database = Depends(get_db)):
     # return Response(status_code=status.HTTP_200_OK)
@@ -52,6 +72,7 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
             database.update_chat_id(mapping, db)
         elif utils.is_text_message(update):
             print("processing a message")
+            initialise_configs_if_not_exists(update, db)
             if utils.is_private_message(update):
                 process_private_message(update, db)
             elif utils.is_group_message(update) and utils.is_valid_command(update):
@@ -60,19 +81,10 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
         elif utils.added_to_group(update):
             database.add_chat_collection(update, db)
             # send message stating the default calculated threshold and how to change it for administrators
-            num_members = Bot.get_chat_member_count(update.message.chat.id)
-            bot_username = Bot.get_me().username
-            chat_config = {
-                "expiryTime": POLL_EXPIRY,
-                "threshold": int(num_members/2)
-            }
-            database.update_chat_configs(update, db, chat_config)
-
-            msg = f"{START_MESSAGE}\n\nThe default threshold is half the number of members in this group ({chat_config['threshold']}), " +\
-                f"and default expiration time is {chat_config['expiryTime']} seconds before poll times out.\n" +\
-                f"Set your own threshold by typing '/setthreshold@{bot_username} <number>'\n " +\
-                    f"Set your own threshold by typing '/setexpiry@{bot_username} <number>'" 
-
+            chat_config = utils.get_default_chat_configs(update)
+            database.set_chat_configs(update, db, chat_config)
+            
+            msg = utils.get_group_first_message(chat_config)
             Bot.send_message(update.message.chat.id, msg)
 
         elif utils.removed_from_group(update):
@@ -92,7 +104,8 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
                     database.remove_message_from_db(chat_id, offending_message_id, db)
                     Bot.send_message(chat_id, "Offending message has been deleted.")
                 except BadRequest as e:
-                    Bot.send_message(chat_id, e.message)
+                    msg = f"Error in deleting message. Please check if I have permission to delete group messages."
+                    Bot.send_message(chat_id, msg)
     except Exception as e:
         Bot.send_message(DEV_CHAT_ID, getattr(e, 'message', str(e)))
             
