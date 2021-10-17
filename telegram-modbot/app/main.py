@@ -44,11 +44,12 @@ def process_command(update:Munch, db: pymongo.database.Database):
 
 def process_private_message(update:Munch, db: pymongo.database.Database):
     text = update.message.text
-    if text == '/start':
-        commands.start(update, db)
-    else:
-        msg = "Commands only work on group chats."
-        Bot.send_message(update.message.chat.id, msg)
+    if text in COMMANDS.keys():
+        if text in ['/start', '/help']:
+            commands.start(update, db)
+        else:
+            msg = "Commands only work on group chats."
+            Bot.send_message(update.message.chat.id, msg)
 
 @app.get("/")
 def root():
@@ -78,10 +79,10 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
 
         elif utils.is_text_message(update):
             print("processing a message")
-            initialise_configs_if_not_exists(update, db)
             if utils.is_private_message(update):
                 process_private_message(update, db)
             elif utils.is_group_message(update) and utils.is_valid_command(update):
+                initialise_configs_if_not_exists(update, db)
                 print("processing command")
                 process_command(update, db)
         

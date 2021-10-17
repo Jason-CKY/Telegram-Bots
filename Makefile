@@ -1,5 +1,4 @@
-MODBOT_VERSION ?= 1.5
-REMINDERBOT_VERSION ?= 1.0
+MODBOT_VERSION ?= 1.6
 
 start-prod:
 	docker-compose up -d
