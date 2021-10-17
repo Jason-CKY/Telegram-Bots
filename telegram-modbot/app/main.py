@@ -44,11 +44,12 @@ def process_command(update:Munch, db: pymongo.database.Database):
 
 def process_private_message(update:Munch, db: pymongo.database.Database):
     text = update.message.text
-    if text == '/start':
-        commands.start(update, db)
-    else:
-        msg = "Commands only work on group chats."
-        Bot.send_message(update.message.chat.id, msg)
+    if text in COMMANDS.keys():
+        if text in ['/start', '/help']:
+            commands.start(update, db)
+        else:
+            msg = "Commands only work on group chats."
+            Bot.send_message(update.message.chat.id, msg)
 
 @app.get("/")
 def root():
