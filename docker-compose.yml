@@ -17,7 +17,7 @@ services:
     image: wernight/ngrok:latest
     # image: wernight/ngrok:armhf # ARM version of the image, use this if running in raspi
     environment:
-      # NGROK_AUTH: $NGROK_AUTH
+      NGROK_AUTH: $NGROK_AUTH
       NGROK_PORT: nginx:80
     networks:
       - ngrok-nginx-net
