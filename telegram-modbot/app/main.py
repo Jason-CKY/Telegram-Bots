@@ -78,10 +78,10 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
 
         elif utils.is_text_message(update):
             print("processing a message")
-            initialise_configs_if_not_exists(update, db)
             if utils.is_private_message(update):
                 process_private_message(update, db)
             elif utils.is_group_message(update) and utils.is_valid_command(update):
+                initialise_configs_if_not_exists(update, db)
                 print("processing command")
                 process_command(update, db)
         
