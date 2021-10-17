@@ -1,15 +1,18 @@
-# Telegram moderation bot
+# Telegram reminder bot
 
-Telegram bot that moderates a group chat by doing a majority poll vote. Bot has to be admin of the group chat with `delete` permission to work.
+Telegram bot that sends you text/image reminders in both personal message or groups.
+
+## Reminder frequencies
+
+- once off reminder
+- every day
+- every week
+- every month
 
 ## Available commands
 
 - start/help - Help on how to use this Bot
-- delete - Reply to a message with this command to initiate poll to delete
-- getconfig - Get current threshold and expiry time for this group chat
-- setthreshold - Set a threshold for this group chat
-- setexpiry - Set a expiry time for the poll
-- support - Link back to this repo
+- remind - Start a reminder
 
 ## Screenshots
 
