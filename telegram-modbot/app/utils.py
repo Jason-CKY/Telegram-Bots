@@ -89,7 +89,7 @@ def get_group_first_message(chat_config: dict):
                 f"and default expiration time is {chat_config['expiryTime']} seconds before poll times out.\n" +\
                 CONFIG_COMMAND_MESSAGE
 
-def settle_poll(poll_id: str):
+def settle_poll(poll_id: str, expired: bool = True):
     client = database.get_client()
     db = client[database.MONGO_DB]
     chat_id = database.get_chat_id_from_poll_id(poll_id, db)
@@ -97,7 +97,8 @@ def settle_poll(poll_id: str):
     offending_message_id = database.get_offending_message_id_from_poll_id(poll_id, db)
     _, threshold = database.get_config(chat_id, db)
     database.remove_message_from_db(chat_id, offending_message_id, db)
-    message = Bot.send_message(chat_id, "Poll expired. Stopping poll and counting votes...")
+    first_msg = "Poll expired. Stopping poll and counting votes..." if expired else "Threshold reached."
+    message = Bot.send_message(chat_id, first_msg)
     try:
         poll_results = Bot.stop_poll(chat_id, poll_message_id)
     except BadRequest as e:

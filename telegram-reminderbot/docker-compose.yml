@@ -1,13 +1,13 @@
 version: '3.7'
 
 services:
-  modbot:
+  reminderbot:
     image: jasoncky96/telegram-reminderbot:latest
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
     restart: always
     networks:
       - ngrok-nginx-net
-      - modbot
+      - reminderbot
     environment:
       NGROK: ngrok-container
       # BOT_TOKEN: $BOT_TOKEN
@@ -33,15 +33,15 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: $MONGO_PASSWORD
     volumes:
       - type: volume
-        source: modbot-db
+        source: reminderbot-db
         target: /data/db
     networks:
-      - modbot
+      - reminderbot
 
 volumes:
-  modbot-db:
+  reminderbot-db:
 
 networks:
-  modbot:
+  reminderbot:
   ngrok-nginx-net:
     external: true

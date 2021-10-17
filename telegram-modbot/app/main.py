@@ -1,4 +1,4 @@
-import json, pymongo
+import json, pymongo, logging
 from app import utils, commands, database
 from app.scheduler import scheduler
 from app.database import get_db
@@ -7,8 +7,18 @@ from fastapi import FastAPI, Request, Response, status, Depends
 from munch import Munch
 from telegram.error import BadRequest
 
+logging.basicConfig()
+logging.getLogger('apscheduler').setLevel(logging.DEBUG)
+
 app = FastAPI()
-scheduler.start()
+
+@app.on_event("startup")
+def startup_event():
+    scheduler.start()
+
+@app.on_event("shutdown")
+def shutdown_event():
+    scheduler.shutdown()
 
 def write_json(data, fname):
     with open(fname, "w") as f:
@@ -50,7 +60,8 @@ def root():
 def ngrok_url():
     return {
         "Ngrok url": PUBLIC_URL,
-        "Bot Info": Bot.get_me().to_dict()
+        "Bot Info": Bot.get_me().to_dict(),
+        "scheduler.get_jobs()": [str(job) for job in scheduler.get_jobs()]
         }
 
 @app.post(f"/modbot/{BOT_TOKEN}")
@@ -64,6 +75,7 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
         if utils.group_upgraded_to_supergroup(update): 
             mapping = utils.get_migrated_chat_mapping(update)
             database.update_chat_id(mapping, db)
+
         elif utils.is_text_message(update):
             print("processing a message")
             initialise_configs_if_not_exists(update, db)
@@ -72,38 +84,25 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
             elif utils.is_group_message(update) and utils.is_valid_command(update):
                 print("processing command")
                 process_command(update, db)
+        
         elif utils.added_to_group(update):
             database.add_chat_collection(update, db)
             # send message stating the default calculated threshold and how to change it for administrators
             chat_config = utils.get_default_chat_configs(update)
             database.set_chat_configs(update, db, chat_config)
-            
             msg = utils.get_group_first_message(chat_config)
             Bot.send_message(update.message.chat.id, msg)
-
+        
         elif utils.removed_from_group(update):
             database.delete_chat_collection(update.my_chat_member.chat.id, db)
-            # Bot.send_message(DEV_CHAT_ID, f"left group {update.my_chat_member.chat.title}, id={update.my_chat_member.chat.id}")
-
+        
         elif utils.poll_updates(update) and utils.is_poll_open(update):
             chat_id = database.get_chat_id_from_poll_id(update.poll.id, db)
-            poll_message_id = database.get_poll_message_id_from_poll_id(update.poll.id, db)
-            offending_message_id = database.get_offending_message_id_from_poll_id(update.poll.id, db)
             _, threshold = database.get_config(chat_id, db)
             delete_count = [d for d in update.poll.options if d.get('text') == 'Delete'][0].get('voter_count')
             if delete_count >= threshold:
-                try:
-                    Bot.delete_message(chat_id, offending_message_id)
-                    Bot.stop_poll(chat_id, poll_message_id)
-                    job_id = database.get_job_id_from_poll_id(update.poll.id, db)
-                    scheduler.remove_job(job_id=job_id)
-                    database.remove_message_from_db(chat_id, offending_message_id, db)
-                    Bot.send_message(chat_id, "Offending message has been deleted.")
-                except BadRequest as e:
-                    error_msg = getattr(e, 'message', str(e))
-                    if "Message can't be deleted" in error_msg:
-                        error_msg += "\nPlease check if I have permission to delete group messages."
-                    Bot.send_message(chat_id, error_msg)
+                utils.settle_poll(update.poll.id, expired=False)
+    
     except Exception as e:
         Bot.send_message(DEV_CHAT_ID, getattr(e, 'message', str(e)))
             

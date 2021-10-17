@@ -1,4 +1,4 @@
-MODBOT_VERSION ?= 1.4
+MODBOT_VERSION ?= 1.5
 
 start:
 	docker-compose up -d
@@ -6,15 +6,18 @@ start:
 	cd telegram-modbot && docker-compose up -d
 
 start-dev:
-# sleep command is to give some time for fastapi server to be set up before curling to set webhook
 	docker-compose -f docker-compose.dev.yml up -d
 	cd telegram-modbot && docker-compose -f docker-compose.dev.yml up --build -d
+
+start-reminderbot:
+	docker-compose -f docker-compose.dev.yml up -d
+	cd telegram-reminderbot && docker-compose -f docker-compose.dev.yml up --build -d
 
 build-all:
 	make build-modbot
 
 build-modbot:
-	cd telegram-modbot && docker-compose build
+	cd telegram-modbot && docker build --tag jasoncky96/telegram-modbot:latest -f ./compose/Dockerfile .
 
 deploy-modbot-image:
 	cd telegram-modbot && docker buildx build --push --tag jasoncky96/telegram-modbot:$(MODBOT_VERSION) --file ./compose/Dockerfile --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
@@ -37,4 +40,5 @@ restart-modbot-dev:
 	
 destroy:
 	cd telegram-modbot && docker-compose down -v
+	cd telegram-reminderbot && docker-compose down -v
 	docker-compose down -v

@@ -1,16 +1,18 @@
 version: '3.7'
 
 services:
-  modbot:
+  reminderbot:
     build:
       context: .
       dockerfile: ./compose/Dockerfile
     image: "jasoncky96/telegram-reminderbot:latest"
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]
     restart: always
+    ports:
+      - 8055:80
     networks:
-      - ngrok-nginx-net
-      - modbot
+      # - ngrok-nginx-net
+      - reminderbot
     environment:
       NGROK: ngrok-container
       BOT_TOKEN: $DEVBOT_TOKEN
@@ -38,15 +40,15 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: $MONGO_PASSWORD
     volumes:
       - type: volume
-        source: modbot-db
+        source: reminderbot-db
         target: /data/db
     networks:
-      - modbot
+      - reminderbot
 
 volumes:
-  modbot-db:
+  reminderbot-db:
 
 networks:
-  modbot:
-  ngrok-nginx-net:
-    external: true
+  reminderbot:
+  # ngrok-nginx-net:
+  #   external: true

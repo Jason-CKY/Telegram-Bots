@@ -48,6 +48,14 @@ def query_for_poll_id(poll_id: str, db: pymongo.database.Database):
 
     return query
 
+def query_for_job_id(job_id: str, db: pymongo.database.Database):
+    chat_collection = db[CHAT_COLLECTION]
+    query = list(chat_collection.find({ "messages.job_id": job_id }))
+    if len(query) == 0:
+        raise AssertionError("No such job exists in this chat")
+
+    return query
+
 def delete_chat_collection(chat_id: int, db: pymongo.database.Database):
     chat_collection = db[CHAT_COLLECTION]
     chat_collection.delete_many({'chat_id': chat_id})
@@ -114,6 +122,10 @@ def insert_chat_poll(update: Munch, poll_data: dict, db: pymongo.database.Databa
     query = { "chat_id": update.message.chat.id }
     newvalues = {"$push" : {"messages": poll_data}}
     chat_collection.update_one(query, newvalues)
+
+def get_poll_id_from_job_id(job_id: str, db: pymongo.database.Database):
+    query = query_for_job_id(job_id, db)
+    return [d['poll_id'] for d in query[0]['messages'] if d.get('job_id') == job_id][0]
 
 def get_job_id_from_poll_id(poll_id: str, db: pymongo.database.Database):
     query = query_for_poll_id(poll_id, db)

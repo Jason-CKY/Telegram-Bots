@@ -7,8 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --gid 1000 fastapi \
-  && useradd --uid 1000 --gid fastapi --shell /bin/bash --create-home fastapi \
-  && chown fastapi:fastapi /code
+  && useradd --uid 1000 --gid fastapi --shell /bin/bash --create-home fastapi 
 
 COPY ./app/requirements.txt /code/requirements.txt
 
@@ -16,7 +15,9 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 COPY --chown=fastapi:fastapi ./compose/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
-COPY ./app /code/app
+COPY ./app/ /code/app/
+
+RUN chown -R fastapi:fastapi /code/
 
 USER fastapi
 
