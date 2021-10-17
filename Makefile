@@ -1,4 +1,5 @@
 MODBOT_VERSION ?= 1.5
+REMINDERBOT_VERSION ?= 1.0
 
 start-prod:
 	docker-compose up -d
@@ -27,7 +28,7 @@ deploy-modbot-image:
 	cd telegram-modbot && docker buildx build --push --tag jasoncky96/telegram-modbot:latest --file ./compose/Dockerfile --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
 
 deploy-reminderbot-image:
-	cd telegram-reminderbot && docker buildx build --push --tag jasoncky96/telegram-reminderbot:$(MODBOT_VERSION) --file ./compose/Dockerfile --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
+	cd telegram-reminderbot && docker buildx build --push --tag jasoncky96/telegram-reminderbot:$(REMINDERBOT_VERSION) --file ./compose/Dockerfile --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
 	cd telegram-reminderbot && docker buildx build --push --tag jasoncky96/telegram-reminderbot:latest --file ./compose/Dockerfile --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
 
 stop-all:
