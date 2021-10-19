@@ -6,16 +6,19 @@ from app.database import CHAT_COLLECTION, MIN_EXPIRY, MAX_EXPIRY
 from app.scheduler import scheduler
 from app import database, utils
 
-def start(update: Munch, db: pymongo.database.Database):
+def start(update: Munch, db: pymongo.database.Database) -> None:
     '''
-    What to print on the /start command
+    Send START_MESSAGE (str) on the /start command
     '''
     Bot.send_message(update.message.chat.id, START_MESSAGE)
 
-def support(update: Munch, db: pymongo.database.Database):
+def support(update: Munch, db: pymongo.database.Database) -> None:
+    '''
+    Send SUPPORT_MESSAGE (str) on the /support command
+    '''
     Bot.send_message(update.message.chat.id, SUPPORT_MESSAGE)
 
-def delete(update: Munch, db: pymongo.database.Database):
+def delete(update: Munch, db: pymongo.database.Database) -> None:
     if 'reply_to_message' not in update.message:
         Bot.send_message(update.message.chat.id, "Please make sure to reply to the offending message when making request to delete.")
     else:
@@ -48,7 +51,7 @@ def delete(update: Munch, db: pymongo.database.Database):
             }
             database.insert_chat_poll(update, poll_data, db)
             
-def get_config(update: Munch, db: pymongo.database.Database):
+def get_config(update: Munch, db: pymongo.database.Database) -> None:
     chat_collection = db[CHAT_COLLECTION]
     query = list(chat_collection.find({"chat_id": update.message.chat.id}, {"_id": 0, "config": 1}))
     if len(query) == 0:
@@ -58,7 +61,7 @@ def get_config(update: Munch, db: pymongo.database.Database):
     msg = utils.get_config_message(config['threshold'], config['expiryTime'])
     Bot.send_message(update.message.chat.id, msg)
 
-def set_threshold(update: Munch, db: pymongo.database.Database):
+def set_threshold(update: Munch, db: pymongo.database.Database) -> None:
     if update.message['from'].id not in [user.user.id for user in Bot.get_chat_administrators(update.message.chat.id)]:
         Bot.send_message(update.message.chat.id, "Only chat administrators allowed to set configs")
         return
@@ -76,7 +79,7 @@ def set_threshold(update: Munch, db: pymongo.database.Database):
             database.set_chat_configs(update, db, chat_config)
             Bot.send_message(update.message.chat.id, f"threshold set as {threshold}")
 
-def set_expiry(update: Munch, db: pymongo.database.Database):
+def set_expiry(update: Munch, db: pymongo.database.Database) -> None:
     if update.message['from'].id not in [user.user.id for user in Bot.get_chat_administrators(update.message.chat.id)]:
         Bot.send_message(update.message.chat.id, "Only chat administrators allowed to set configs")
         return
