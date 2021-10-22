@@ -6,6 +6,11 @@ start-prod:
 	cd telegram-modbot && docker-compose pull modbot
 	cd telegram-modbot && docker-compose up -d
 
+start-modbot-prod:
+	docker-compose up -d
+	cd telegram-modbot && docker-compose pull modbot
+	cd telegram-modbot && docker-compose up -d
+	
 start-modbot-dev:
 	docker-compose -f docker-compose.dev.yml up -d
 	cd telegram-modbot && docker-compose -f docker-compose.dev.yml up --build -d

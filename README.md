@@ -5,13 +5,15 @@ Telegram bots written in FastAPI servers, with a nginx reverse proxy that is con
 ## Quick Start
 
 ```bash
-make start
+make start-prod
 ```
 
 ## Start in development mode
 
+Starting moderation bot in dev mode:
+
 ```bash
-make start-dev
+make start-modbot-dev
 ```
 
 ## List of telegram bots
