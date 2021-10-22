@@ -1,5 +1,6 @@
 import os
 from telegram.ext import ExtBot
+
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 Bot = ExtBot(token=BOT_TOKEN)
 

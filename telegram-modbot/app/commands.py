@@ -19,6 +19,9 @@ def support(update: Munch, db: pymongo.database.Database) -> None:
     Bot.send_message(update.message.chat.id, SUPPORT_MESSAGE)
 
 def delete(update: Munch, db: pymongo.database.Database) -> None:
+    '''
+    Sets up a poll in the group chat to vote for the deletion of the message in question.
+    '''
     if 'reply_to_message' not in update.message:
         Bot.send_message(update.message.chat.id, "Please make sure to reply to the offending message when making request to delete.")
     else:
@@ -52,6 +55,13 @@ def delete(update: Munch, db: pymongo.database.Database) -> None:
             database.insert_chat_poll(update, poll_data, db)
             
 def get_config(update: Munch, db: pymongo.database.Database) -> None:
+    '''
+    Send a message to the group with the configs for the current chat group in the form of:
+    {
+        "threshold": <int>,
+        "expiryTime": <int>
+    }
+    '''
     chat_collection = db[CHAT_COLLECTION]
     query = list(chat_collection.find({"chat_id": update.message.chat.id}, {"_id": 0, "config": 1}))
     if len(query) == 0:
@@ -62,6 +72,11 @@ def get_config(update: Munch, db: pymongo.database.Database) -> None:
     Bot.send_message(update.message.chat.id, msg)
 
 def set_threshold(update: Munch, db: pymongo.database.Database) -> None:
+    '''
+    Update the database for this group settings and change the threshold.
+    Message is to be sent in the form of '/setthreshold@username <int>'
+    Sends a message upon successful update of database
+    '''
     if update.message['from'].id not in [user.user.id for user in Bot.get_chat_administrators(update.message.chat.id)]:
         Bot.send_message(update.message.chat.id, "Only chat administrators allowed to set configs")
         return
@@ -80,6 +95,11 @@ def set_threshold(update: Munch, db: pymongo.database.Database) -> None:
             Bot.send_message(update.message.chat.id, f"threshold set as {threshold}")
 
 def set_expiry(update: Munch, db: pymongo.database.Database) -> None:
+    '''
+    Update the database for this group settings and change the expiry time.
+    Message is to be sent in the form of '/setexpiry@username <int>'
+    Sends a message upon successful update of database
+    '''
     if update.message['from'].id not in [user.user.id for user in Bot.get_chat_administrators(update.message.chat.id)]:
         Bot.send_message(update.message.chat.id, "Only chat administrators allowed to set configs")
         return

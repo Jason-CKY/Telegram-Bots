@@ -1,8 +1,8 @@
+import pymongo
 from pytz import utc
 from app import database, utils
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.mongodb import MongoDBJobStore
-from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.events import EVENT_JOB_MISSED
 
 # jobstores = {
@@ -18,12 +18,11 @@ from apscheduler.events import EVENT_JOB_MISSED
 # scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
 
 def listener(event):
-    client = database.get_client()
-    db = client[database.MONGO_DB]
-    poll_id = database.get_poll_id_from_job_id(event.job_id, db)
-    utils.settle_poll(poll_id)
-    client.close()
+    with pymongo.MongoClient(database.MONGO_DATABASE_URL) as client:
+        db = client[database.MONGO_DB]
+        poll_id = database.get_poll_id_from_job_id(event.job_id, db)
+        utils.settle_poll(poll_id)
     
 scheduler = BackgroundScheduler(timezone=utc)
-scheduler.add_jobstore(MongoDBJobStore(client=database.get_client()))    
+scheduler.add_jobstore(MongoDBJobStore(client=pymongo.MongoClient(database.MONGO_DATABASE_URL)))    
 scheduler.add_listener(listener, EVENT_JOB_MISSED)

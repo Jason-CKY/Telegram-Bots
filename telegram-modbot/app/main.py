@@ -5,7 +5,6 @@ from app.database import get_db
 from app.constants import *
 from fastapi import FastAPI, Request, Response, status, Depends
 from munch import Munch
-from telegram.error import BadRequest
 
 logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.DEBUG)
@@ -19,10 +18,6 @@ def startup_event():
 @app.on_event("shutdown")
 def shutdown_event():
     scheduler.shutdown()
-
-def write_json(data, fname):
-    with open(fname, "w") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
 
 def initialise_configs_if_not_exists(update: Munch, db: pymongo.database.Database):
     '''
@@ -71,7 +66,7 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
         req = await request.body()
         update = json.loads(req)
         update = Munch.fromDict(update)
-        write_json(update, f"/code/app/output.json")
+        utils.write_json(update, f"/code/app/output.json")
         # TODO: find a way to schedule tasks
         if utils.group_upgraded_to_supergroup(update): 
             mapping = utils.get_migrated_chat_mapping(update)
