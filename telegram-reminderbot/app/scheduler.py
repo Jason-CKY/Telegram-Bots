@@ -1,44 +1,28 @@
-"""
-This example demonstrates the use of the MongoDB job store.
-On each run, it adds a new alarm that fires after ten seconds.
-You can exit the program, restart it and observe that any previous alarms that have not fired yet
-are still active. Running the example with the --clear switch will remove any existing alarms.
-"""
-
-from datetime import datetime, timedelta
-import sys
-import os, time
-from apscheduler.schedulers.background import BackgroundScheduler
+import pymongo
 from pytz import utc
-from database import get_client
+from app import database, utils
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.mongodb import MongoDBJobStore
-import logging
+from apscheduler.events import EVENT_JOB_MISSED
 
-def alarm(time):
-    print('Alarm! This alarm was scheduled at %s.' % time)
+# jobstores = {
+#     'mongo': MongoDBJobStore(client=get_client())
+# }
+# executors = {
+#     'default': ThreadPoolExecutor(20)
+# }
+# job_defaults = {
+#     'coalesce': False,      # whether to only run the job once when several run times are due
+#     'max_instances': 3      # the maximum number of concurrently executing instances allowed for this job
+# }
+# scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
 
-
-if __name__ == '__main__':
-    # logging.basicConfig()
-    # logging.getLogger('apscheduler').setLevel(logging.DEBUG)
-    scheduler = BackgroundScheduler(timezone=utc)
-    scheduler.add_jobstore(MongoDBJobStore(client=get_client()))
-    client = get_client()
-    print(list(client['apscheduler']['jobs'].find()))
-    # print(scheduler.get_jobs())
-    if len(sys.argv) > 1 and sys.argv[1] == '--clear':
-        scheduler.remove_all_jobs()
-
-    alarm_time = datetime.now() + timedelta(seconds=10)
-    scheduler.add_job(alarm, 'date', run_date=alarm_time, args=[datetime.now()])
-    # print(scheduler.get_jobs())
-    scheduler.start()
-    print('To clear the alarms, run this example with the --clear argument.')
-    print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
-
-    try:
-        # This is here to simulate application activity (which keeps the main thread alive).
-        while True:
-            time.sleep(2)
-    except (KeyboardInterrupt, SystemExit):
-        pass
+def listener(event):
+    with pymongo.MongoClient(database.MONGO_DATABASE_URL) as client:
+        db = client[database.MONGO_DB]
+        poll_id = database.get_poll_id_from_job_id(event.job_id, db)
+        utils.settle_poll(poll_id)
+    
+scheduler = BackgroundScheduler(timezone=utc)
+scheduler.add_jobstore(MongoDBJobStore(client=pymongo.MongoClient(database.MONGO_DATABASE_URL)))    
+scheduler.add_listener(listener, EVENT_JOB_MISSED)

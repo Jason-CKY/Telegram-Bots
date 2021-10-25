@@ -1,0 +1,21 @@
+{
+    "chat_id": 15112214593,
+    "config": {
+        "timezone": "Asia/Singapore"
+    },
+    "reminders": [
+        {
+            "message_id": 44123,
+            "text": "this is a reminder text",
+            "file_id": "AgACAgUAAxkBAAIC4GF221tnj06qWnVCs_AHK-OHrdTNAALxrDEbQfOoV9HKf2nxxAjLAQADAgADeQADIQQ",
+            "started_at": 1634913754.0870788,
+            "job_id": "2ecb00df-c653-4254-a0c9-b1e7b6f2f079"
+        },
+        {
+            "message_id": 44123,
+            "text": "this is a reminder text",
+            "started_at": 1634913754.0870788,
+            "job_id": "2ecb00df-c653-4254-a0c9-b1e7b6f2f079"
+        }
+    ]
+}

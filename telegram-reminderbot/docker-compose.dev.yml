@@ -5,13 +5,12 @@ services:
     build:
       context: .
       dockerfile: ./compose/Dockerfile
-    image: "jasoncky96/telegram-reminderbot:latest"
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]
     restart: always
     ports:
       - 8055:80
     networks:
-      # - ngrok-nginx-net
+      - ngrok-nginx-net
       - reminderbot
     environment:
       NGROK: ngrok-container
@@ -50,5 +49,5 @@ volumes:
 
 networks:
   reminderbot:
-  # ngrok-nginx-net:
-  #   external: true
+  ngrok-nginx-net:
+    external: true
