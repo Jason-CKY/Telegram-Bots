@@ -88,6 +88,12 @@ def removed_from_group(update: Munch) -> bool:
         update.my_chat_member.new_chat_member.user.id == Bot.get_me().id and \
         update.my_chat_member.new_chat_member.status == 'left'           
 
+def is_callback_query(update: Munch) -> bool:
+    '''
+    returns True if somebody pressed on an inline keyboard button
+    '''
+    return 'callback_query' in update
+
 def poll_updates(update: Munch) -> bool:
     '''
     returns True if there is any poll updates on polls that the Bot created

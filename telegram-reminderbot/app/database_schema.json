@@ -1,19 +1,35 @@
 {
     "chat_id": 15112214593,
-    "config": {
-        "timezone": "Asia/Singapore"
-    },
+    "timezone": "Asia/Singapore",
+    "reminders_in_construction": [
+        {
+            "user_id": 403432365,
+            "reminder_text": "test",
+            "frequency": "monthly-25",
+            "time": "11:11"
+        },
+        {
+            "user_id": 403682365,
+            "reminder_text": "test-2",
+            "frequency": "week-2",
+            "time": "12:12"
+        }
+    ],
     "reminders": [
         {
             "message_id": 44123,
-            "text": "this is a reminder text",
+            "text": "this is a reminder text with image",
             "file_id": "AgACAgUAAxkBAAIC4GF221tnj06qWnVCs_AHK-OHrdTNAALxrDEbQfOoV9HKf2nxxAjLAQADAgADeQADIQQ",
+            "frequency": "once",
+            "time": "12:45",
             "started_at": 1634913754.0870788,
             "job_id": "2ecb00df-c653-4254-a0c9-b1e7b6f2f079"
         },
         {
             "message_id": 44123,
             "text": "this is a reminder text",
+            "frequency": "weekly-3",
+            "time": "12:45",
             "started_at": 1634913754.0870788,
             "job_id": "2ecb00df-c653-4254-a0c9-b1e7b6f2f079"
         }

@@ -37,5 +37,10 @@ COMMANDS = {
     '/start': commands.start,
     '/help': commands.start,
     '/support': commands.support,
-    '/remind': commands.remind
+    '/remind': commands.remind,
+    '/calendar': commands.show_calendar # test function
 }
+
+# REPLY_KEYBOARD_COMMANDS = {
+#     '🚫 Cancel': commands.remove_reply_keyboard_markup
+# }
