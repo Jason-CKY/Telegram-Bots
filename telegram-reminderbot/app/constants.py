@@ -37,9 +37,13 @@ COMMANDS = {
     '/start': commands.start,
     '/help': commands.start,
     '/support': commands.support,
-    '/remind': commands.remind,
-    '/calendar': commands.show_calendar # test function
+    '/remind': commands.remind
 }
+
+REMINDER_ONCE = 'Once-off'
+REMINDER_DAILY = 'Daily'
+REMINDER_WEEKLY = 'Weekly'
+REMINDER_MONTHLY = 'Monthly'
 
 # REPLY_KEYBOARD_COMMANDS = {
 #     '🚫 Cancel': commands.remove_reply_keyboard_markup

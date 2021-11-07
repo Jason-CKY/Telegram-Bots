@@ -5,30 +5,30 @@
         {
             "user_id": 403432365,
             "reminder_text": "test",
-            "frequency": "monthly-25",
+            "frequency": "Monthly-25",
             "time": "11:11"
         },
         {
             "user_id": 403682365,
             "reminder_text": "test-2",
-            "frequency": "week-2",
+            "frequency": "Weekly-2",
             "time": "12:12"
         }
     ],
     "reminders": [
         {
-            "message_id": 44123,
+            "reminder_id": "435217cc-9365-4d65-b887-b26a19fc0f2d",
             "text": "this is a reminder text with image",
             "file_id": "AgACAgUAAxkBAAIC4GF221tnj06qWnVCs_AHK-OHrdTNAALxrDEbQfOoV9HKf2nxxAjLAQADAgADeQADIQQ",
-            "frequency": "once",
+            "frequency": "Once-off 2021-12-12",
             "time": "12:45",
             "started_at": 1634913754.0870788,
             "job_id": "2ecb00df-c653-4254-a0c9-b1e7b6f2f079"
         },
         {
-            "message_id": 44123,
+            "reminder_id": "3dea7143-dbb5-41da-b02c-f9f59739397b",
             "text": "this is a reminder text",
-            "frequency": "weekly-3",
+            "frequency": "Weekly-3",
             "time": "12:45",
             "started_at": 1634913754.0870788,
             "job_id": "2ecb00df-c653-4254-a0c9-b1e7b6f2f079"

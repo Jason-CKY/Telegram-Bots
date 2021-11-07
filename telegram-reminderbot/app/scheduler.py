@@ -20,8 +20,10 @@ from apscheduler.events import EVENT_JOB_MISSED
 def listener(event):
     with pymongo.MongoClient(database.MONGO_DATABASE_URL) as client:
         db = client[database.MONGO_DB]
-        poll_id = database.get_poll_id_from_job_id(event.job_id, db)
-        utils.settle_poll(poll_id)
+        chat_id = database.get_chat_id_from_job_id(event.job_id, db)
+        reminder_id = database.get_reminder_id_from_job_id(event.job_id, db)
+
+        utils.reminder_trigger(chat_id, reminder_id)
     
 scheduler = BackgroundScheduler(timezone=utc)
 scheduler.add_jobstore(MongoDBJobStore(client=pymongo.MongoClient(database.MONGO_DATABASE_URL)))    

@@ -1,4 +1,4 @@
-import json, pymongo, logging
+import json, pymongo, logging, pytz
 from app import utils, commands, database
 from app.scheduler import scheduler
 from app.database import get_db
@@ -6,7 +6,8 @@ from app.constants import *
 from fastapi import FastAPI, Request, Response, status, Depends
 from munch import Munch
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
-from datetime import date
+from telegram import ReplyKeyboardMarkup, KeyboardButton
+from datetime import date, datetime
 
 logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.DEBUG)
@@ -17,51 +18,85 @@ def process_command(update:Munch, db: pymongo.database.Database) -> None:
     command = utils.extract_command(update)
     return COMMANDS[command](update, db)
 
-def process_message(update: Munch, db: pymongo.database.Database) -> None:
-    '''
-    Process any messages that is a sent to the bot. This will either be a normal private message or a reply to the bot in group chats due to privacy settings turned on.
-    if text is in the format of <HH>:<MM>, query the database 
-    '''
-    # command = utils.extract_command(update)
-    if update.message.text == '🚫 Cancel':
-        database.delete_reminder_in_construction(update.message.chat.id, update.message['from'].id)
-        commands.remove_reply_keyboard_markup(update, db)
-    
-    # reminder text -> reminder time -> reminder frequency -> reminder set.
-    if database.is_reminder_text_in_construction(update.message.chat.id, update.message['from'].id):
-        # enter reminder time
-        pass
-    elif database.is_reminder_time_in_construction(update.message.chat.id, update.message['from'].id):
-        if utils.is_valid_time(update.message.text):
-            # update database
-            pass
-        else:
-            # send error message
-            pass
-        pass
-    # enter reminder frequency
-    elif database.is_reminder_frequency_in_construction(update.message.chat.id, update.message['from'].id):
-        # create reminder
-        pass
-    # any text received by bot with no entry in db is treated as reminder text
-    else:
-
-        pass
 
 def callback_query_handler(update: Munch, db: pymongo.database.Database) -> None:
     c = update.callback_query
     if c.data.startswith('cbcal'):
-        result, key, step = DetailedTelegramCalendar(min_date=date.today()).process(c.data)
+        reminder_in_construction = database.get_reminder_in_construction(c.message.chat.id, c['from'].id, db)
+        timezone = database.query_for_timezone(c.message.chat.id, db)
+        current_datetime = pytz.timezone('UTC').localize(datetime.now()).astimezone(pytz.timezone(timezone))
+        result, key, step = DetailedTelegramCalendar(min_date=utils.calculate_date(current_datetime, reminder_in_construction['time'])).process(c.data)
         if not result and key:
             Bot.edit_message_text(f"Select {LSTEP[step]}",
                                         c.message.chat.id,
                                         c.message.message_id,
                                         reply_markup=key)
         elif result:
-            Bot.edit_message_text(f"You selected {result}",
+            Bot.edit_message_text(f"Reminder set for {result}, {reminder_in_construction['time']}",
                                     c.message.chat.id,
                                     c.message.message_id)
+            database.update_reminder_in_construction(c.message.chat.id, c['from'].id, db, frequency=" ".join([REMINDER_ONCE, str(result)]))
+            utils.create_reminder(c.message.chat.id, c['from'].id, db)
+            database.delete_reminder_in_construction(c.message.chat.id, c['from'].id, db)
 
+def process_message(update: Munch, db: pymongo.database.Database) -> None:
+    '''
+    Process any messages that is a sent to the bot. This will either be a normal private message or a reply to the bot in group chats due to privacy settings turned on.
+    if text is in the format of <HH>:<MM>, query the database 
+    '''
+    if update.message.text == '🚫 Cancel':
+        database.delete_reminder_in_construction(update.message.chat.id, update.message['from'].id, db)
+        utils.remove_reply_keyboard_markup(update, db, message="Operation cancelled.")
+    
+    # reminder text -> reminder time -> reminder frequency -> reminder set.
+    elif database.is_reminder_time_in_construction(update.message.chat.id, update.message['from'].id, db):
+        if utils.is_valid_time(update.message.text):
+            # update database
+            database.update_reminder_in_construction(update.message.chat.id, update.message['from'].id, db, time=update.message.text)
+            Bot.send_message(update.message.chat.id, "Once-off reminder or recurring reminder?", reply_to_message_id=update.message.message_id, 
+            reply_markup=ReplyKeyboardMarkup(
+                resize_keyboard=True,
+                one_time_keyboard=True,
+                selective=True,
+                input_field_placeholder="enter reminder time in <HH>:<MM> format.",
+                keyboard=[  [KeyboardButton(REMINDER_ONCE), KeyboardButton(REMINDER_DAILY)],
+                            [KeyboardButton(REMINDER_WEEKLY), KeyboardButton(REMINDER_MONTHLY)],
+                                        [KeyboardButton("🚫 Cancel")]
+                        ]
+            ))
+        else:
+            # send error message
+            Bot.send_message(update.message.chat.id, "Failed to parse time. Please enter time again.", reply_to_message_id=update.message.message_id, 
+            reply_markup=ReplyKeyboardMarkup(
+                resize_keyboard=True,
+                one_time_keyboard=True,
+                selective=True,
+                input_field_placeholder="enter reminder time in <HH>:<MM> format.",
+                keyboard=[[KeyboardButton("🚫 Cancel")]]
+            ))
+    # enter reminder frequency
+    elif database.is_reminder_frequency_in_construction(update.message.chat.id, update.message['from'].id, db):
+        # create reminder
+        if update.message.text == REMINDER_ONCE:
+            utils.remove_reply_keyboard_markup(update, db, reply_to_message=False)
+            database.update_reminder_in_construction(update.message.chat.id, update.message['from'].id, db, frequency=REMINDER_ONCE)
+            reminder_in_construction = database.get_reminder_in_construction(update.message.chat.id, update.message['from'].id, db)
+            timezone = database.query_for_timezone(update.message.chat.id, db)
+            current_datetime = pytz.timezone('UTC').localize(datetime.now()).astimezone(pytz.timezone(timezone))
+            utils.show_calendar(update, min_date=utils.calculate_date(current_datetime, reminder_in_construction['time']))
+    # any text received by bot with no entry in db is treated as reminder text
+    else:
+        database.add_reminder_to_construction(update.message.chat.id, update.message['from'].id, db)
+        database.update_reminder_in_construction(update.message.chat.id, update.message['from'].id, db, reminder_text=update.message.text)
+        Bot.send_message(update.message.chat.id, "enter reminder time in <HH>:<MM> format.", reply_to_message_id=update.message.message_id, 
+        reply_markup=ReplyKeyboardMarkup(
+            resize_keyboard=True,
+            one_time_keyboard=True,
+            selective=True,
+            input_field_placeholder="enter reminder time in <HH>:<MM> format.",
+            keyboard=[[KeyboardButton("🚫 Cancel")]]
+        ))
+    
 @app.on_event("startup")
 def startup_event():
     scheduler.start()
@@ -102,6 +137,9 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
             process_message(update, db)
         elif utils.is_callback_query(update):
             callback_query_handler(update, db)
+        elif utils.added_to_group(update):
+            #TODO: initiate process to set timezone
+            pass
         
     except Exception as e:
         Bot.send_message(DEV_CHAT_ID, getattr(e, 'message', str(e)))

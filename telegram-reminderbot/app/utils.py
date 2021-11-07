@@ -1,9 +1,11 @@
-import pymongo, json
+import re, json, pymongo, uuid, pytz
 from app.constants import *
 from app import database
 from munch import Munch
-from telegram.error import BadRequest
 from app.scheduler import scheduler
+from telegram import ReplyKeyboardRemove
+from datetime import datetime, date, timedelta
+from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 
 def write_json(data: dict, fname: str) -> None:
     '''
@@ -94,18 +96,6 @@ def is_callback_query(update: Munch) -> bool:
     '''
     return 'callback_query' in update
 
-def poll_updates(update: Munch) -> bool:
-    '''
-    returns True if there is any poll updates on polls that the Bot created
-    '''
-    return 'poll' in update
-
-def is_poll_open(update: Munch) -> bool:
-    '''
-    returns True if the poll is still open
-    '''
-    return not update.poll.is_closed
-
 def group_created(update: Munch) -> bool:
     '''
     returns True if a group has been created
@@ -130,3 +120,92 @@ def get_migrated_chat_mapping(update: Munch) -> dict:
         "chat_id": chat_id,
         "supergroup_chat_id": supergroup_chat_id
     }
+
+def is_valid_time(text: str) -> bool:
+    '''
+    Use regex to match military time in <HH>:<MM> 
+    source: https://stackoverflow.com/questions/1494671/regular-expression-for-matching-time-in-military-24-hour-format
+    regex: ^([01]\d|2[0-3]):?([0-5]\d)$
+        ^        Start of string (anchor)
+        (        begin capturing group
+        [01]   a "0" or "1"
+        \d     any digit
+        |       or
+        2[0-3] "2" followed by a character between 0 and 3 inclusive
+        )        end capturing group
+        :        colon
+        (        start capturing
+        [0-5]  character between 0 and 5
+        \d     digit
+        )        end group
+        $        end of string anchor
+    '''
+    return re.fullmatch('^([01]\d|2[0-3]):([0-5]\d)$', text) is not None
+
+def calculate_date(current_datetime: datetime, reminder_time: str):
+    current_time = current_datetime.strftime("%H:%M")
+    current_hour, current_minute = [int(t) for t in current_time.split(":")]
+    hour, minute = [int(t) for t in reminder_time.split(":")]
+    if hour < current_hour or (hour == current_hour and minute < current_minute):
+        return (current_datetime + timedelta(days=1)).date()
+    return current_datetime.date()
+
+def show_calendar(update: Munch, min_date: date) -> None:
+    calendar, step = DetailedTelegramCalendar(min_date=min_date).build()
+    Bot.send_message(update.message.chat.id,
+                     f"Select {LSTEP[step]}",
+                     reply_to_message_id=update.message.message_id,
+                     reply_markup=calendar)
+
+def remove_reply_keyboard_markup(update: Munch, db: pymongo.database.Database, message: str = "Removing reply keyboard...", reply_to_message: bool = True) -> None:
+    '''
+    Send a message to prompt for reminder text with a force reply.
+    Inline keyboard to cancel command.
+    '''
+    if reply_to_message:
+        Bot.send_message(update.message.chat.id, message, reply_to_message_id=update.message.message_id, 
+            reply_markup=ReplyKeyboardRemove(selective=True))
+    else:
+        Bot.send_message(update.message.chat.id, message,
+            reply_markup=ReplyKeyboardRemove(selective=True))
+
+def create_reminder(chat_id: int, from_user_id: int, db: pymongo.database.Database) -> None:
+    timezone = database.query_for_timezone(chat_id, db)
+    reminders_in_construction = database.query_for_reminder_in_construction(chat_id, db)
+    reminder = [r for r in reminders_in_construction if r['user_id'] == from_user_id][0]
+    reminder_id = str(uuid.uuid4())
+    reminder['reminder_id'] = reminder_id
+    job_id = str(chat_id) + "_" + reminder['reminder_text']
+    reminder['job_id'] = job_id
+    database.insert_reminder(chat_id, reminder, db)
+    hour, minute = reminder['time'].split(":")
+    time_str = f"{reminder['frequency'].split()[1]}-{hour}-{minute}"
+    run_date = pytz.timezone(timezone).localize(datetime.strptime(time_str, "%Y-%m-%d-%H-%M")).astimezone(pytz.utc)
+    ###################################
+
+
+    if REMINDER_ONCE in reminder['frequency']:
+        scheduler.add_job(reminder_trigger, 'date', run_date=run_date, args=[chat_id, reminder_id], id=job_id)
+    elif REMINDER_DAILY in reminder['frequency']:
+        # extract hour and minute
+        scheduler.add_job(reminder_trigger, 'cron', day="*", hour=run_date.hour, minute=run_date.minute, args=[chat_id, reminder_id], id=job_id)
+    elif REMINDER_WEEKLY in reminder['frequency']:
+        # TODO: extract day of week
+        scheduler.add_job(reminder_trigger, 'cron', week="*", day_of_week=1, hour=run_date.hour, minute=run_date.minute, args=[chat_id, reminder_id], id=job_id)
+    elif REMINDER_MONTHLY in reminder['frequency']:
+        # TODO: extract day of month
+        scheduler.add_job(reminder_trigger, 'cron', month="*", day=15, hour=run_date.hour, minute=run_date.minute, args=[chat_id, reminder_id], id=job_id)
+
+def reminder_trigger(chat_id: int, reminder_id: str):
+    with pymongo.MongoClient(database.MONGO_DATABASE_URL) as client:
+        db = client[database.MONGO_DB]
+        reminders = database.query_for_reminders(chat_id, db)
+        reminder = [r for r in reminders if r['reminder_id'] == reminder_id][0]
+        file_id = None
+        if 'file_id' in reminder:
+            file_id = reminder['file_id']
+        if file_id is not None:
+            Bot.send_photo(chat_id, photo=file_id, caption=reminder['reminder_text'])
+        else:
+            Bot.send_message(chat_id, reminder['reminder_text'])
+        database.delete_reminder(chat_id, reminder_id, db)
