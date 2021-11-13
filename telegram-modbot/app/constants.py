@@ -7,7 +7,7 @@ Bot = ExtBot(token=BOT_TOKEN)
 PUBLIC_URL = os.getenv('PUBLIC_URL')
 CONFIG_COMMAND_MESSAGE = f"Get configs by typing '/getconfig@{Bot.get_me().username}'. \n" +\
                         f"Set your own threshold by typing '/setthreshold@{Bot.get_me().username} <number>'\n " +\
-                        f"Set your own threshold by typing '/setexpiry@{Bot.get_me().username} <number>'" 
+                        f"Set your own threshold by typing '/setexpiry@{Bot.get_me().username} <number>'"
 
 START_MESSAGE = f"I am a Bot that moderates chat groups. Just add me into a group chat and " +\
                 f"give me permissions to send polls and delete messages. Summon me in the " +\
@@ -30,7 +30,6 @@ DEV_CHAT_ID = os.getenv('DEV_CHAT_ID')
 # the configs from this file
 
 from app import commands
-
 '''
 start - Help on how to use this Bot
 help - Help on how to use this Bot

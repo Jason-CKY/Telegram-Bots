@@ -23,7 +23,6 @@ DEV_CHAT_ID = os.getenv('DEV_CHAT_ID')
 # the configs from this file
 
 from app import commands
-
 '''
 start - Help on how to use this Bot
 help - Help on how to use this Bot
@@ -40,7 +39,17 @@ COMMANDS = {
     '/remind': commands.remind
 }
 
-REMINDER_ONCE = 'Once-off'
+DAY_OF_WEEK = {
+    "Monday": 1,
+    "Tuesday": 2,
+    "Wednesday": 3,
+    "Thursday": 4,
+    "Friday": 5,
+    "Saturday": 6,
+    "Sunday": 7
+}
+
+REMINDER_ONCE = 'Once_off'
 REMINDER_DAILY = 'Daily'
 REMINDER_WEEKLY = 'Weekly'
 REMINDER_MONTHLY = 'Monthly'

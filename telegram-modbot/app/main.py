@@ -11,15 +11,19 @@ logging.getLogger('apscheduler').setLevel(logging.DEBUG)
 
 app = FastAPI()
 
+
 @app.on_event("startup")
 def startup_event():
     scheduler.start()
+
 
 @app.on_event("shutdown")
 def shutdown_event():
     scheduler.shutdown()
 
-def initialise_configs_if_not_exists(update: Munch, db: pymongo.database.Database):
+
+def initialise_configs_if_not_exists(update: Munch,
+                                     db: pymongo.database.Database):
     '''
     Triggered when a message is sent in a group the bot is in. Checks for the chat id within mongodb for configs,
     and creates the chat collection with default configs if it does not exists.
@@ -33,11 +37,13 @@ def initialise_configs_if_not_exists(update: Munch, db: pymongo.database.Databas
         msg = utils.get_initialise_config_message(chat_config)
         Bot.send_message(update.message.chat.id, msg)
 
-def process_command(update:Munch, db: pymongo.database.Database):
+
+def process_command(update: Munch, db: pymongo.database.Database):
     command = utils.extract_command(update)
     return COMMANDS[command](update, db)
 
-def process_private_message(update:Munch, db: pymongo.database.Database):
+
+def process_private_message(update: Munch, db: pymongo.database.Database):
     text = update.message.text
     if text in COMMANDS.keys():
         if text in ['/start', '/help']:
@@ -46,11 +52,11 @@ def process_private_message(update:Munch, db: pymongo.database.Database):
             msg = "Commands only work on group chats."
             Bot.send_message(update.message.chat.id, msg)
 
+
 @app.get("/")
 def root():
-    return {
-        "Hello": "World"
-    }
+    return {"Hello": "World"}
+
 
 @app.get("/modbot")
 def ngrok_url():
@@ -58,17 +64,19 @@ def ngrok_url():
         "Ngrok url": PUBLIC_URL,
         "Bot Info": Bot.get_me().to_dict(),
         "scheduler.get_jobs()": [str(job) for job in scheduler.get_jobs()]
-        }
+    }
+
 
 @app.post(f"/modbot/{BOT_TOKEN}")
-async def respond(request:Request, db: pymongo.database.Database = Depends(get_db)):
+async def respond(request: Request,
+                  db: pymongo.database.Database = Depends(get_db)):
     try:
         req = await request.body()
         update = json.loads(req)
         update = Munch.fromDict(update)
         utils.write_json(update, f"/code/app/output.json")
         # TODO: find a way to schedule tasks
-        if utils.group_upgraded_to_supergroup(update): 
+        if utils.group_upgraded_to_supergroup(update):
             mapping = utils.get_migrated_chat_mapping(update)
             database.update_chat_id(mapping, db)
 
@@ -76,11 +84,12 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
             print("processing a message")
             if utils.is_private_message(update):
                 process_private_message(update, db)
-            elif utils.is_group_message(update) and utils.is_valid_command(update):
+            elif utils.is_group_message(update) and utils.is_valid_command(
+                    update):
                 initialise_configs_if_not_exists(update, db)
                 print("processing command")
                 process_command(update, db)
-        
+
         elif utils.added_to_group(update):
             database.add_chat_collection(update, db)
             # send message stating the default calculated threshold and how to change it for administrators
@@ -88,18 +97,20 @@ async def respond(request:Request, db: pymongo.database.Database = Depends(get_d
             database.set_chat_configs(update, db, chat_config)
             msg = utils.get_group_first_message(chat_config)
             Bot.send_message(update.message.chat.id, msg)
-        
+
         elif utils.removed_from_group(update):
             database.delete_chat_collection(update.my_chat_member.chat.id, db)
-        
+
         elif utils.poll_updates(update) and utils.is_poll_open(update):
             chat_id = database.get_chat_id_from_poll_id(update.poll.id, db)
             _, threshold = database.get_config(chat_id, db)
-            delete_count = [d for d in update.poll.options if d.get('text') == 'Delete'][0].get('voter_count')
+            delete_count = [
+                d for d in update.poll.options if d.get('text') == 'Delete'
+            ][0].get('voter_count')
             if delete_count >= threshold:
                 utils.settle_poll(update.poll.id, expired=False)
-    
+
     except Exception as e:
         Bot.send_message(DEV_CHAT_ID, getattr(e, 'message', str(e)))
-            
+
     return Response(status_code=status.HTTP_200_OK)

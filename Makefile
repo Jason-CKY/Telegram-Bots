@@ -1,6 +1,9 @@
 MODBOT_VERSION ?= 1.7
 REMINDERBOT_VERSION ?= 1.0
 
+format: 
+	yapf -i -r -p telegram-reminderbot telegram-modbot
+
 start-prod:
 	docker-compose up -d
 	cd telegram-modbot && docker-compose pull modbot
