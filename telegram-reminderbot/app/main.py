@@ -1,13 +1,14 @@
 import json, pymongo, logging, pytz
-from app import utils, commands, database
+from app import utils, database
+from app.command_mappings import COMMANDS
 from app.scheduler import scheduler
 from app.database import get_db
-from app.constants import *
+from app.constants import Bot, PUBLIC_URL, BOT_TOKEN, DEV_CHAT_ID, DAY_OF_WEEK, REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
 from fastapi import FastAPI, Request, Response, status, Depends
 from munch import Munch
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 from telegram import ReplyKeyboardMarkup, KeyboardButton
-from datetime import date, datetime
+from datetime import datetime
 
 logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.DEBUG)
@@ -284,6 +285,6 @@ async def respond(request: Request,
 
     except Exception as e:
         Bot.send_message(DEV_CHAT_ID, getattr(e, 'message', str(e)))
-        # raise
+        raise
 
     return Response(status_code=status.HTTP_200_OK)

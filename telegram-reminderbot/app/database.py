@@ -1,10 +1,7 @@
 import pymongo
 import os
-from munch import Munch
 from typing import List
-from datetime import datetime, timedelta
-from app import utils
-from app.constants import *
+from app.constants import REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
 
 print()
 MONGO_USERNAME = os.getenv('MONGO_USERNAME')  # ; print(MONGO_USERNAME)

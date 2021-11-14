@@ -1,6 +1,7 @@
 import re, json, pymongo, uuid, pytz
 from time import time as current_time
-from app.constants import *
+from app.constants import Bot, DAY_OF_WEEK, REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
+from app.command_mappings import COMMANDS
 from app import database
 from munch import Munch
 from app.scheduler import scheduler
@@ -182,11 +183,12 @@ def parse_day_of_month(day: str):
     3 -> 3rd
     4 -> 4th, ...
     '''
-    if int(day[1]) == 1:
+    ones_digit = int(day[1]) if len(day) > 1 else int(day)
+    if ones_digit == 1:
         return f"{day}st"
-    elif int(day[1]) == 2:
+    elif ones_digit == 2:
         return f"{day}nd"
-    elif int(day[2]) == 3:
+    elif ones_digit == 3:
         return f"{day}rd"
     else:
         return f"{day}th"
@@ -241,18 +243,11 @@ def create_reminder(chat_id: int, from_user_id: int,
     reminder['job_id'] = job_id
     database.insert_reminder(chat_id, reminder, db)
     hour, minute = [int(t) for t in reminder['time'].split(":")]
-    if reminder['frequency'] == REMINDER_ONCE:
+
+    if REMINDER_ONCE in reminder['frequency']:
         time_str = f"{reminder['frequency'].split()[1]}-{hour}-{minute}"
         run_date = pytz.timezone(timezone).localize(
             datetime.strptime(time_str, "%Y-%m-%d-%H-%M")).astimezone(pytz.utc)
-    else:
-        run_date = datetime.combine(datetime.today(), time(hour, minute))
-        run_date = run_date.replace(day=10)
-        run_date = pytz.timezone(timezone).localize(run_date).astimezone(
-            pytz.utc)
-    ###################################
-
-    if REMINDER_ONCE in reminder['frequency']:
         scheduler.add_job(reminder_trigger,
                           'date',
                           run_date=run_date,
@@ -260,7 +255,10 @@ def create_reminder(chat_id: int, from_user_id: int,
                           id=job_id)
     elif REMINDER_DAILY in reminder['frequency']:
         # extract hour and minute
-        print("here!")
+        run_date = datetime.combine(datetime.today(), time(hour, minute))
+        run_date = run_date.replace(day=10)
+        run_date = pytz.timezone(timezone).localize(run_date).astimezone(
+            pytz.utc)
         scheduler.add_job(reminder_trigger,
                           'cron',
                           day="*",
@@ -269,10 +267,11 @@ def create_reminder(chat_id: int, from_user_id: int,
                           args=[chat_id, reminder_id],
                           id=job_id)
     elif REMINDER_WEEKLY in reminder['frequency']:
-        # TODO: extract day of week
         day = int(reminder['frequency'].split('-')[1]) - 1
-        diff = run_date.weekday() - day
-        run_date.replace(day=run_date.day - diff)
+        run_date = datetime.combine(datetime.today(), time(hour, minute))
+        run_date.replace(day=day)
+        run_date = pytz.timezone(timezone).localize(run_date).astimezone(
+            pytz.utc)
         scheduler.add_job(reminder_trigger,
                           'cron',
                           week="*",
@@ -282,8 +281,11 @@ def create_reminder(chat_id: int, from_user_id: int,
                           args=[chat_id, reminder_id],
                           id=job_id)
     elif REMINDER_MONTHLY in reminder['frequency']:
-        # TODO: extract day of month
         day = int(reminder['frequency'].split('-')[1])
+        run_date = datetime.combine(datetime(year=2021, month=1, day=day),
+                                    time(hour, minute))
+        run_date = pytz.timezone(timezone).localize(run_date).astimezone(
+            pytz.utc)
         scheduler.add_job(reminder_trigger,
                           'cron',
                           month="*",
@@ -305,7 +307,7 @@ def reminder_trigger(chat_id: int, reminder_id: str):
         if file_id is not None:
             Bot.send_photo(chat_id,
                            photo=file_id,
-                           caption=f"🗓 {reminder['reminder_text']}")
+                           caption=f"🖼 {reminder['reminder_text']}")
         else:
             Bot.send_message(chat_id, f"🗓 {reminder['reminder_text']}")
         database.delete_reminder(chat_id, reminder_id, db)

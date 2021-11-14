@@ -18,7 +18,6 @@ services:
     container_name: ngrok-container
     image: wernight/ngrok:latest
     # image: wernight/ngrok:armhf # ARM version of the image, use this if running in raspi
-    command: sleep infinity
     environment:
       NGROK_PORT: nginx:80
     networks:

@@ -18,27 +18,6 @@ SUPPORT_MESSAGE =   f"My source code is hosted on https://github.com/Jason-CKY/T
 
 DEV_CHAT_ID = os.getenv('DEV_CHAT_ID')
 
-# import this line to avoid importing commands before
-# defining the rest of the config as commands also import
-# the configs from this file
-
-from app import commands
-'''
-start - Help on how to use this Bot
-help - Help on how to use this Bot
-delete - Reply to a message with this command to initiate poll to delete
-getconfig - Get current threshold and expiry time for this group chat
-setthreshold - Set a threshold for this group chat
-setexpiry - Set a expiry time for the poll
-support - Support me on github!
-'''
-COMMANDS = {
-    '/start': commands.start,
-    '/help': commands.start,
-    '/support': commands.support,
-    '/remind': commands.remind
-}
-
 DAY_OF_WEEK = {
     "Monday": 1,
     "Tuesday": 2,
@@ -53,7 +32,3 @@ REMINDER_ONCE = 'Once_off'
 REMINDER_DAILY = 'Daily'
 REMINDER_WEEKLY = 'Weekly'
 REMINDER_MONTHLY = 'Monthly'
-
-# REPLY_KEYBOARD_COMMANDS = {
-#     '🚫 Cancel': commands.remove_reply_keyboard_markup
-# }
