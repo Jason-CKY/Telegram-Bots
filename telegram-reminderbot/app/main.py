@@ -2,7 +2,7 @@ import json, pymongo, logging
 from app import utils, database
 from app.command_mappings import COMMANDS
 from app.scheduler import scheduler
-from app.database import get_db
+from app.database import get_db, Database
 from app.menu import ListReminderMenu, ReminderBuilder, SettingsMenu
 from app.constants import Bot, PUBLIC_URL, BOT_TOKEN, DEV_CHAT_ID
 from fastapi import FastAPI, Request, Response, status, Depends
@@ -15,21 +15,23 @@ app = FastAPI()
 
 
 def process_command(update: Munch, db: pymongo.database.Database) -> None:
+    database = Database(update.message.chat.id, db)
     command = utils.extract_command(update)
-    return COMMANDS[command](update, db)
+    return COMMANDS[command](update, database)
 
 
 def callback_query_handler(update: Munch,
                            db: pymongo.database.Database) -> None:
     c = update.callback_query
+    database = Database(c.message.chat.id, db)
     if c.data.startswith('cbcal'):
-        ReminderBuilder(db).process_callback(c)
+        ReminderBuilder(database).process_callback(c)
     elif c.data.startswith('lr'):
         '''
         list reminder callback buttons
         '''
-        message, markup, parse_mode = ListReminderMenu(c.message.chat.id,
-                                                       db).process(c.data)
+        message, markup, parse_mode = ListReminderMenu(
+            c.message.chat.id, database).process(c.data)
         Bot.edit_message_text(message,
                               c.message.chat.id,
                               c.message.message_id,
@@ -42,21 +44,19 @@ def process_message(update: Munch, db: pymongo.database.Database) -> None:
     Process any messages that is a sent to the bot. This will either be a normal private message or a reply to the bot in group chats due to privacy settings turned on.
     if text is in the format of <HH>:<MM>, query the database 
     '''
-    if not database.is_chat_id_exists(update.message.chat.id, db):
-        database.add_chat_collection(update.message.chat.id, db)
+    database = Database(update.message.chat.id, db)
+    if not database.is_chat_id_exists():
+        database.add_chat_collection()
 
     if update.message.text == '🚫 Cancel':
         utils.remove_reply_keyboard_markup(update,
-                                           db,
                                            message="Operation cancelled.")
-        database.delete_reminder_in_construction(update.message.chat.id,
-                                                 update.message['from'].id, db)
-    elif database.query_for_chat_id(update.message.chat.id,
-                                    db)[0]['update_settings']:
+        database.delete_reminder_in_construction(update.message['from'].id)
+    elif database.query_for_chat_id()[0]['update_settings']:
         SettingsMenu(update.message.chat.id,
-                     db).process_message(update.message.text)
+                     database).process_message(update.message.text)
     else:
-        ReminderBuilder(db).process_message(update)
+        ReminderBuilder(database).process_message(update)
 
 
 @app.on_event("startup")

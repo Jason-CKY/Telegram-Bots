@@ -1,13 +1,12 @@
-import pymongo
 from munch import Munch
 from app.constants import SUPPORT_MESSAGE, START_MESSAGE, Bot
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 from app.menu import ListReminderMenu, SettingsMenu
-
+from app.database import Database
 # https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568
 
 
-def start(update: Munch, db: pymongo.database.Database) -> None:
+def start(update: Munch, database: Database) -> None:
     '''
     Send START_MESSAGE (str) on the /start command,
     TODO: if no settings are found for current user, initiate the process to change settings
@@ -15,14 +14,14 @@ def start(update: Munch, db: pymongo.database.Database) -> None:
     Bot.send_message(update.message.chat.id, START_MESSAGE)
 
 
-def support(update: Munch, db: pymongo.database.Database) -> None:
+def support(update: Munch, database: Database) -> None:
     '''
     Send SUPPORT_MESSAGE (str) on the /support command
     '''
     Bot.send_message(update.message.chat.id, SUPPORT_MESSAGE)
 
 
-def remind(update: Munch, db: pymongo.database.Database) -> None:
+def remind(update: Munch, database: Database) -> None:
     '''
     Send a message to prompt for reminder text with a force reply.
     Inline keyboard to cancel command.
@@ -39,20 +38,20 @@ def remind(update: Munch, db: pymongo.database.Database) -> None:
                          keyboard=[[KeyboardButton("🚫 Cancel")]]))
 
 
-def list_reminders(update: Munch, db: pymongo.database.Database) -> None:
+def list_reminders(update: Munch, database: Database) -> None:
     '''
     Send a message listing all current reminders in the current chat group
     '''
     message, markup, parse_mode = ListReminderMenu(update.message.chat.id,
-                                                   db).page(1)
+                                                   database).page(1)
     Bot.send_message(update.message.chat.id,
                      message,
                      reply_markup=markup,
                      parse_mode=parse_mode)
 
 
-def settings(update: Munch, db: pymongo.database.Database) -> None:
+def settings(update: Munch, database: Database) -> None:
     '''
     Get current settings
     '''
-    SettingsMenu(update.message.chat.id, db).list_settings()
+    SettingsMenu(update.message.chat.id, database).list_settings()

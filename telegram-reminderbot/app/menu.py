@@ -1,12 +1,13 @@
-import pymongo, json, pytz
+import pytz
 from munch import Munch
 from datetime import datetime
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 from app.constants import DAY_OF_WEEK, REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
-from app import database, utils
+from app import utils
 from app.scheduler import scheduler
 from app.constants import Bot
+from app.database import Database
 from typing import List, Tuple
 
 
@@ -14,14 +15,13 @@ class ReminderBuilder:
     '''
     Instantiate a class to handle all messages/callbacks that involves the creation of reminders 
     '''
-    def __init__(self, db: pymongo.database.Database):
-        self.db = db
+    def __init__(self, db: Database):
+        self.database = db
 
     def process_callback(self, callback_query: Munch):
-        reminder_in_construction = database.get_reminder_in_construction(
-            callback_query.message.chat.id, callback_query['from'].id, self.db)
-        timezone = database.query_for_timezone(callback_query.message.chat.id,
-                                               self.db)
+        reminder_in_construction = self.database.get_reminder_in_construction(
+            callback_query['from'].id)
+        timezone = self.database.query_for_timezone()
         current_datetime = pytz.timezone('UTC').localize(
             datetime.now()).astimezone(pytz.timezone(timezone))
         result, key, step = DetailedTelegramCalendar(
@@ -38,29 +38,22 @@ class ReminderBuilder:
                 f"✅ Reminder set for {result}, {reminder_in_construction['time']}",
                 callback_query.message.chat.id,
                 callback_query.message.message_id)
-            database.update_reminder_in_construction(
-                callback_query.message.chat.id,
+            self.database.update_reminder_in_construction(
                 callback_query['from'].id,
-                self.db,
                 frequency=" ".join([REMINDER_ONCE, str(result)]))
             utils.create_reminder(callback_query.message.chat.id,
-                                  callback_query['from'].id, self.db)
-            database.delete_reminder_in_construction(
-                callback_query.message.chat.id, callback_query['from'].id,
-                self.db)
+                                  callback_query['from'].id, self.database)
+            self.database.delete_reminder_in_construction(
+                callback_query['from'].id)
 
     def process_message(self, update: Munch) -> None:
         # reminder text -> reminder time -> reminder frequency -> reminder set.
-        if database.is_reminder_time_in_construction(update.message.chat.id,
-                                                     update.message['from'].id,
-                                                     self.db):
+        if self.database.is_reminder_time_in_construction(
+                update.message['from'].id):
             if utils.is_valid_time(update.message.text):
                 # update database
-                database.update_reminder_in_construction(
-                    update.message.chat.id,
-                    update.message['from'].id,
-                    self.db,
-                    time=update.message.text)
+                self.database.update_reminder_in_construction(
+                    update.message['from'].id, time=update.message.text)
                 Bot.send_message(
                     update.message.chat.id,
                     "Once-off reminder or recurring reminder?",
@@ -91,57 +84,45 @@ class ReminderBuilder:
                         "enter reminder time in <HH>:<MM> format.",
                         keyboard=[[KeyboardButton("🚫 Cancel")]]))
         # enter reminder frequency
-        elif database.is_reminder_frequency_in_construction(
-                update.message.chat.id, update.message['from'].id, self.db):
-            reminder = database.get_reminder_in_construction(
-                update.message.chat.id, update.message['from'].id, self.db)
+        elif self.database.is_reminder_frequency_in_construction(
+                update.message['from'].id):
+            reminder = self.database.get_reminder_in_construction(
+                update.message['from'].id)
 
             # create reminder
             if update.message.text == REMINDER_ONCE:
                 utils.remove_reply_keyboard_markup(
                     update,
-                    self.db,
                     message="once-off reminder selected.",
                     reply_to_message=False)
-                database.update_reminder_in_construction(
-                    update.message.chat.id,
-                    update.message['from'].id,
-                    self.db,
-                    frequency=REMINDER_ONCE)
-                reminder = database.get_reminder_in_construction(
-                    update.message.chat.id, update.message['from'].id, self.db)
-                timezone = database.query_for_timezone(update.message.chat.id,
-                                                       self.db)
+                self.database.update_reminder_in_construction(
+                    update.message['from'].id, frequency=REMINDER_ONCE)
+                reminder = self.database.get_reminder_in_construction(
+                    update.message['from'].id)
+                timezone = self.database.query_for_timezone()
                 current_datetime = pytz.timezone('UTC').localize(
                     datetime.now()).astimezone(pytz.timezone(timezone))
                 utils.show_calendar(update,
                                     min_date=utils.calculate_date(
                                         current_datetime, reminder['time']))
             elif update.message.text == REMINDER_DAILY:
-                database.update_reminder_in_construction(
-                    update.message.chat.id,
-                    update.message['from'].id,
-                    self.db,
-                    frequency=REMINDER_DAILY)
-                reminder = database.get_reminder_in_construction(
-                    update.message.chat.id, update.message['from'].id, self.db)
+                self.database.update_reminder_in_construction(
+                    update.message['from'].id, frequency=REMINDER_DAILY)
+                reminder = self.database.get_reminder_in_construction(
+                    update.message['from'].id)
+                utils.create_reminder(update.message.chat.id,
+                                      update.message['from'].id, self.database)
                 utils.remove_reply_keyboard_markup(
                     update,
-                    self.db,
                     message=
                     f"✅ Reminder set for every day at {reminder['time']}",
                     reply_to_message=False)
-                utils.create_reminder(update.message.chat.id,
-                                      update.message['from'].id, self.db)
-                database.delete_reminder_in_construction(
-                    update.message.chat.id, update.message['from'].id, self.db)
+                self.database.delete_reminder_in_construction(
+                    update.message['from'].id)
 
             elif update.message.text == REMINDER_WEEKLY:
-                database.update_reminder_in_construction(
-                    update.message.chat.id,
-                    update.message['from'].id,
-                    self.db,
-                    frequency=REMINDER_WEEKLY)
+                self.database.update_reminder_in_construction(
+                    update.message['from'].id, frequency=REMINDER_WEEKLY)
                 Bot.send_message(
                     update.message.chat.id,
                     "Which day of week do you want to set your weekly reminder?",
@@ -168,11 +149,8 @@ class ReminderBuilder:
                                   ]]))
 
             elif update.message.text == REMINDER_MONTHLY:
-                database.update_reminder_in_construction(
-                    update.message.chat.id,
-                    update.message['from'].id,
-                    self.db,
-                    frequency=REMINDER_MONTHLY)
+                self.database.update_reminder_in_construction(
+                    update.message['from'].id, frequency=REMINDER_MONTHLY)
                 Bot.send_message(
                     update.message.chat.id,
                     "Which day of the month do you want to set your monthly reminder? (1-31)",
@@ -185,42 +163,34 @@ class ReminderBuilder:
                                             update.message.text):
                     day = str(DAY_OF_WEEK[update.message.text]) if reminder[
                         'frequency'] == REMINDER_WEEKLY else update.message.text
-                    database.update_reminder_in_construction(
-                        update.message.chat.id,
+                    self.database.update_reminder_in_construction(
                         update.message['from'].id,
-                        self.db,
                         frequency='-'.join([reminder['frequency'], day]))
-                    reminder = database.get_reminder_in_construction(
-                        update.message.chat.id, update.message['from'].id,
-                        self.db)
+                    reminder = self.database.get_reminder_in_construction(
+                        update.message['from'].id)
                     frequency = f"every {update.message.text}" if REMINDER_WEEKLY in reminder[
                         'frequency'] else f"{utils.parse_day_of_month(update.message.text)} of every month"
+                    utils.create_reminder(update.message.chat.id,
+                                          update.message['from'].id,
+                                          self.database)
                     utils.remove_reply_keyboard_markup(
                         update,
-                        self.db,
                         message=
                         f"✅ Reminder set for {frequency} at {reminder['time']}",
                         reply_to_message=False)
-                    utils.create_reminder(update.message.chat.id,
-                                          update.message['from'].id, self.db)
-                    database.delete_reminder_in_construction(
-                        update.message.chat.id, update.message['from'].id,
-                        self.db)
+                    self.database.delete_reminder_in_construction(
+                        update.message['from'].id)
                 else:
                     # send error message
                     error_message = "Invalid day of week [1-7]" if reminder[
                         'frequency'] == REMINDER_WEEKLY else "Invalid day of month [1-31]"
                     Bot.send_message(update.message.chat.id, error_message)
-        # any text received by bot with no entry in self.db is treated as reminder text
+        # any text received by bot with no entry in self.database is treated as reminder text
         else:
-            database.add_reminder_to_construction(update.message.chat.id,
-                                                  update.message['from'].id,
-                                                  self.db)
-            database.update_reminder_in_construction(
-                update.message.chat.id,
-                update.message['from'].id,
-                self.db,
-                reminder_text=update.message.text)
+            self.database.add_reminder_to_construction(
+                update.message['from'].id)
+            self.database.update_reminder_in_construction(
+                update.message['from'].id, reminder_text=update.message.text)
             Bot.send_message(update.message.chat.id,
                              "enter reminder time in <HH>:<MM> format.",
                              reply_to_message_id=update.message.message_id,
@@ -241,14 +211,14 @@ class ListReminderMenu:
     '''
     def __init__(self,
                  chat_id: int,
-                 db: pymongo.database.Database,
+                 db: Database,
                  max_reminders_per_page: int = 7):
         self.chat_id = chat_id
-        self.db = db
+        self.database = db
         self.max_reminders_per_page = max_reminders_per_page
 
     def get_reminders(self) -> List[str]:
-        reminders = database.query_for_reminders(self.chat_id, self.db)
+        reminders = self.database.query_for_reminders()
 
         reminder_texts = []
         for reminder in reminders:
@@ -264,7 +234,8 @@ class ListReminderMenu:
                 for k, v in DAY_OF_WEEK.items():
                     if day_of_week == v:
                         day_of_week = k
-                _frequency = f"every {k}"
+
+                _frequency = f"every {day_of_week}"
             elif reminder['frequency'].split('-')[0] == REMINDER_MONTHLY:
                 day_of_month = utils.parse_day_of_month(
                     reminder['frequency'].split('-')[1])
@@ -299,8 +270,7 @@ class ListReminderMenu:
         except IndexError:
             return self.back_to_list("😐 Reminder not found found.")
         scheduler.get_job(reminder['job_id']).remove()
-        database.delete_reminder(self.chat_id, reminder['reminder_id'],
-                                 self.db)
+        self.database.delete_reminder(reminder['reminder_id'])
 
     def get_reminder_menu(
             self, reminder_num: int) -> Tuple[str, InlineKeyboardMarkup, str]:
@@ -318,7 +288,7 @@ class ListReminderMenu:
         except IndexError:
             return self.back_to_list("😐 Reminder not found found.")
 
-        timezone = database.query_for_timezone(self.chat_id, self.db)
+        timezone = self.database.query_for_timezone()
         next_trigger_time = scheduler.get_job(
             reminder['job_id']).next_run_time.astimezone(
                 pytz.timezone(timezone))
@@ -385,9 +355,9 @@ class SettingsMenu:
     '''
     Instantiate a class to handle all the keyboard buttons for settings.
     '''
-    def __init__(self, chat_id: int, db: pymongo.database.Database):
+    def __init__(self, chat_id: int, db: Database):
         self.chat_id = chat_id
-        self.db = db
+        self.database = db
 
     def process_message(self, text: str) -> None:
         if text == "🕐 Change time zone":
@@ -396,7 +366,7 @@ class SettingsMenu:
             return self.set_timezone(text)
 
     def list_settings(self) -> None:
-        timezone = database.query_for_timezone(self.chat_id, self.db)
+        timezone = self.database.query_for_timezone()
         local_current_time = datetime.now(
             pytz.timezone(timezone)).strftime("%H:%M:%S")
         message = "<b>Your current settings:</b>\n\n"
@@ -411,9 +381,7 @@ class SettingsMenu:
                                      one_time_keyboard=True,
                                      selective=True)
 
-        database.update_chat_settings(self.chat_id,
-                                      self.db,
-                                      update_settings=True)
+        self.database.update_chat_settings(update_settings=True)
         Bot.send_message(self.chat_id,
                          message,
                          reply_markup=markup,
@@ -434,11 +402,9 @@ class SettingsMenu:
     def set_timezone(self, timezone: str) -> None:
         if timezone in pytz.all_timezones:
             message = 'Timezone has been set.'
-            database.update_chat_settings(self.chat_id,
-                                          self.db,
-                                          update_settings=False,
-                                          timezone=timezone)
-            reminders = database.query_for_reminders(self.chat_id, self.db)
+            self.database.update_chat_settings(update_settings=False,
+                                               timezone=timezone)
+            reminders = self.database.query_for_reminders()
             for reminder in reminders:
                 scheduler.get_job(reminder['job_id']).remove()
                 hour, minute = [int(t) for t in reminder['time'].split(":")]
