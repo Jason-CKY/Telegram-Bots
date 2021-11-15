@@ -13,5 +13,6 @@ COMMANDS = {
     '/help': commands.start,
     '/support': commands.support,
     '/remind': commands.remind,
-    '/list': commands.list_reminders
+    '/list': commands.list_reminders,
+    '/settings': commands.settings,
 }

@@ -233,17 +233,8 @@ def remove_reply_keyboard_markup(update: Munch,
             reply_markup=ReplyKeyboardRemove(selective=True))
 
 
-def create_reminder(chat_id: int, from_user_id: int,
-                    db: pymongo.database.Database) -> None:
-    timezone = database.query_for_timezone(chat_id, db)
-    reminder = database.get_reminder_in_construction(chat_id, from_user_id, db)
-    reminder_id = str(uuid.uuid4())
-    reminder['reminder_id'] = reminder_id
-    job_id = str(current_time()) + "_" + reminder['reminder_text']
-    reminder['job_id'] = job_id
-    database.insert_reminder(chat_id, reminder, db)
-    hour, minute = [int(t) for t in reminder['time'].split(":")]
-
+def add_scheduler_job(reminder: dict, hour: int, minute: int, timezone: str,
+                      chat_id: int, reminder_id: str, job_id: str):
     if REMINDER_ONCE in reminder['frequency']:
         time_str = f"{reminder['frequency'].split()[1]}-{hour}-{minute}"
         run_date = pytz.timezone(timezone).localize(
@@ -296,6 +287,20 @@ def create_reminder(chat_id: int, from_user_id: int,
                           id=job_id)
 
 
+def create_reminder(chat_id: int, from_user_id: int,
+                    db: pymongo.database.Database) -> None:
+    timezone = database.query_for_timezone(chat_id, db)
+    reminder = database.get_reminder_in_construction(chat_id, from_user_id, db)
+    reminder_id = str(uuid.uuid4())
+    reminder['reminder_id'] = reminder_id
+    job_id = str(current_time()) + "_" + reminder['reminder_text']
+    reminder['job_id'] = job_id
+    database.insert_reminder(chat_id, reminder, db)
+    hour, minute = [int(t) for t in reminder['time'].split(":")]
+    add_scheduler_job(reminder, hour, minute, timezone, chat_id, reminder_id,
+                      job_id)
+
+
 def reminder_trigger(chat_id: int, reminder_id: str):
     with pymongo.MongoClient(database.MONGO_DATABASE_URL) as client:
         db = client[database.MONGO_DB]
@@ -310,4 +315,6 @@ def reminder_trigger(chat_id: int, reminder_id: str):
                            caption=f"🖼 {reminder['reminder_text']}")
         else:
             Bot.send_message(chat_id, f"🗓 {reminder['reminder_text']}")
-        database.delete_reminder(chat_id, reminder_id, db)
+
+        if reminder['frequency'].startswith(REMINDER_ONCE):
+            database.delete_reminder(chat_id, reminder_id, db)

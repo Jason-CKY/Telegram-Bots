@@ -28,7 +28,7 @@ DAY_OF_WEEK = {
     "Sunday": 7
 }
 
-REMINDER_ONCE = 'Once_off'
+REMINDER_ONCE = 'Once'
 REMINDER_DAILY = 'Daily'
 REMINDER_WEEKLY = 'Weekly'
 REMINDER_MONTHLY = 'Monthly'

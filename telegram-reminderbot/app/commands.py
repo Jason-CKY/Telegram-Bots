@@ -1,9 +1,8 @@
-import json, pymongo, pytz
-from datetime import datetime, time
+import pymongo
 from munch import Munch
-from app.constants import DAY_OF_WEEK, SUPPORT_MESSAGE, START_MESSAGE, Bot, REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
-from app import database, utils
+from app.constants import SUPPORT_MESSAGE, START_MESSAGE, Bot
 from telegram import ReplyKeyboardMarkup, KeyboardButton
+from app.menu import ListReminderMenu, SettingsMenu
 
 # https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568
 
@@ -29,12 +28,6 @@ def remind(update: Munch, db: pymongo.database.Database) -> None:
     Inline keyboard to cancel command.
     '''
     message = "Please enter reminder text. This bot allows for image reminders as well. Just attach an image and put your reminder text as the caption."
-    # use ForceReply instead of ReplyKeyboardMarkup due to reply not showing on phone telegram
-    # Bot.send_message(update.message.chat.id, message, reply_to_message_id=update.message.message_id,
-    #     reply_markup=ForceReply(
-    #         input_field_placeholder="Enter reminder text",
-    #         selective=True
-    #     ))
     Bot.send_message(update.message.chat.id,
                      message,
                      reply_to_message_id=update.message.message_id,
@@ -50,35 +43,16 @@ def list_reminders(update: Munch, db: pymongo.database.Database) -> None:
     '''
     Send a message listing all current reminders in the current chat group
     '''
-    reminders = database.query_for_reminders(update.message.chat.id, db)
-    timezone = database.query_for_timezone(update.message.chat.id, db)
-    print(json.dumps(reminders, indent=4))
-    message = ""
-    for num, reminder in enumerate(reminders):
-        hour, minute = [int(t) for t in reminder['time'].split(":")]
-        if reminder['frequency'].split()[0] == REMINDER_ONCE:
-            time_str = f"{reminder['frequency'].split()[1]}-{hour}-{minute}"
-            run_date = pytz.timezone(timezone).localize(
-                datetime.strptime(time_str, "%Y-%m-%d-%H-%M"))
-            _time = run_date.strftime("%a, %-d %B %Y at %H:%M")
-        elif reminder['frequency'].split('-')[0] == REMINDER_DAILY:
-            reminder_time = time(hour, minute).strftime("%H:%M")
-            _time = f"everyday at {reminder_time}"
-        elif reminder['frequency'].split('-')[0] == REMINDER_WEEKLY:
-            day_of_week = int(reminder['frequency'].split('-')[1])
-            for k, v in DAY_OF_WEEK.items():
-                if day_of_week == v:
-                    day_of_week = k
-            run_date = datetime.combine(datetime.today(), time(hour, minute))
-            run_date = pytz.timezone(timezone).localize(run_date)
-            reminder_time = time(hour, minute).strftime("%H:%M")
-            _time = f"every {k} at {reminder_time}"
-        elif reminder['frequency'].split('-')[0] == REMINDER_MONTHLY:
-            day_of_month = utils.parse_day_of_month(
-                reminder['frequency'].split('-')[1])
-            reminder_time = time(hour, minute).strftime("%H:%M")
-            _time = f"{day_of_month} of every month at {reminder_time}"
+    message, markup, parse_mode = ListReminderMenu(update.message.chat.id,
+                                                   db).page(1)
+    Bot.send_message(update.message.chat.id,
+                     message,
+                     reply_markup=markup,
+                     parse_mode=parse_mode)
 
-        message += f"{num+1}) {reminder['reminder_text']} ({_time}) \n"
 
-    Bot.send_message(update.message.chat.id, message)
+def settings(update: Munch, db: pymongo.database.Database) -> None:
+    '''
+    Get current settings
+    '''
+    SettingsMenu(update.message.chat.id, db).list_settings()

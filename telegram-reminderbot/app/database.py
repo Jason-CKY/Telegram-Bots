@@ -30,14 +30,112 @@ def get_db():
         client.close()
 
 
+class Database:
+    '''
+    General database class to store all data operations and queries
+    '''
+    def __init__(self, chat_id: str, db: pymongo.database.Database):
+        self.db = db
+        self.chat_id = chat_id
+        self.chat_collection = self.db[CHAT_COLLECTION]
+
+    '''
+    Query functions
+    '''
+
+    def query_for_chat_id(self) -> List[dict]:
+        '''
+        Returns the chat query with messages that contains the given chat id. By right this should only
+        return a list of 1 entry as chat ids are unique to each chat, but return the entire query regardless
+        '''
+        query = list(self.chat_collection.find({"chat_id": self.chat_id}))
+        if len(query) == 0:
+            raise AssertionError(
+                "This group chat ID does not exist in the database!")
+
+        return query
+
+    def query_for_job_id(self, job_id: str) -> List[dict]:
+        '''
+        Returns the chat query with messages that contains the given job id. By right this should only
+        return a list of 1 entry as job ids are unique to each job, but return the entire query regardless
+        '''
+        query = list(self.chat_collection.find({"reminders.job_id": job_id}))
+        if len(query) == 0:
+            raise AssertionError("No such job exists in this chat")
+
+        return query
+
+    def query_for_reminder_in_construction(self) -> list:
+        return self.query_for_chat_id()[0]['reminders_in_construction']
+
+    def query_for_reminders(self) -> list:
+        return self.query_for_chat_id()[0]['reminders']
+
+    def query_for_timezone(self) -> str:
+        return self.query_for_chat_id()[0]['timezone']
+
+
+def query_for_reminder_in_construction(chat_id: int,
+                                       db: pymongo.database.Database) -> list:
+    chat_collection = db[CHAT_COLLECTION]
+    query = list(chat_collection.find({"chat_id": chat_id}))
+    return query[0]['reminders_in_construction']
+
+
+def query_for_reminders(chat_id: int, db: pymongo.database.Database) -> list:
+    chat_collection = db[CHAT_COLLECTION]
+    query = list(chat_collection.find({"chat_id": chat_id}))
+    return query[0]['reminders']
+
+
+def query_for_timezone(chat_id: int, db: pymongo.database.Database) -> str:
+    chat_collection = db[CHAT_COLLECTION]
+    query = list(chat_collection.find({"chat_id": chat_id}))
+    return query[0]['timezone']
+
+
+def query_for_chat_id(chat_id: int,
+                      db: pymongo.database.Database) -> List[dict]:
+    '''
+    Returns the chat query with messages that contains the given chat id. By right this should only
+    return a list of 1 entry as chat ids are unique to each chat, but return the entire query regardless
+    '''
+    chat_collection = db[CHAT_COLLECTION]
+    query = list(chat_collection.find({"chat_id": chat_id}))
+    if len(query) == 0:
+        raise AssertionError(
+            "This group chat ID does not exist in the database!")
+
+    return query
+
+
+def query_for_job_id(job_id: str, db: pymongo.database.Database) -> List[dict]:
+    '''
+    Returns the chat query with messages that contains the given job id. By right this should only
+    return a list of 1 entry as job ids are unique to each job, but return the entire query regardless
+    '''
+    chat_collection = db[CHAT_COLLECTION]
+    query = list(chat_collection.find({"reminders.job_id": job_id}))
+    if len(query) == 0:
+        raise AssertionError("No such job exists in this chat")
+
+    return query
+
+
 def delete_reminder_in_construction(chat_id: int, from_user_id: int,
-                                    db: pymongo.database.Database) -> bool:
+                                    db: pymongo.database.Database) -> None:
     chat_collection = db[CHAT_COLLECTION]
     query = list(
         chat_collection.find({
             "chat_id": chat_id,
             "reminders_in_construction.user_id": from_user_id
-        }))[0]['reminders_in_construction']
+        }))
+
+    if len(query) == 0:
+        return
+
+    query = query[0]['reminders_in_construction']
 
     reminders_in_construction = [
         q for q in query if q['user_id'] != from_user_id
@@ -104,6 +202,13 @@ def is_reminder_frequency_in_construction(
     return False
 
 
+def update_chat_settings(chat_id: int, db: pymongo.database.Database,
+                         **kwargs):
+    chat_collection = db[CHAT_COLLECTION]
+    newvalues = {"$set": {k: v for k, v in kwargs.items()}}
+    chat_collection.update_one({"chat_id": chat_id}, newvalues)
+
+
 def update_reminder_in_construction(chat_id: int, from_user_id: int,
                                     db: pymongo.database.Database, **kwargs):
     chat_collection = db[CHAT_COLLECTION]
@@ -120,11 +225,14 @@ def update_reminder_in_construction(chat_id: int, from_user_id: int,
     chat_collection.update_one({"chat_id": chat_id}, newvalues)
 
 
+def is_chat_id_exists(chat_id: int, db: pymongo.database.Database) -> bool:
+    chat_collection = db[CHAT_COLLECTION]
+    return len(list(chat_collection.find({'chat_id': chat_id}))) != 0
+
+
 def add_reminder_to_construction(chat_id: int, from_user_id: int,
                                  db: pymongo.database.Database) -> None:
     chat_collection = db[CHAT_COLLECTION]
-    if len(list(chat_collection.find({'chat_id': chat_id}))) == 0:
-        add_chat_collection(chat_id, db)
     newvalues = {
         "$push": {
             "reminders_in_construction": {
@@ -163,53 +271,6 @@ def get_reminder_in_construction(chat_id: int, from_user_id: int,
     ][0]
 
 
-def query_for_reminder_in_construction(chat_id: int,
-                                       db: pymongo.database.Database) -> list:
-    chat_collection = db[CHAT_COLLECTION]
-    query = list(chat_collection.find({"chat_id": chat_id}))
-    return query[0]['reminders_in_construction']
-
-
-def query_for_reminders(chat_id: int, db: pymongo.database.Database) -> list:
-    chat_collection = db[CHAT_COLLECTION]
-    query = list(chat_collection.find({"chat_id": chat_id}))
-    return query[0]['reminders']
-
-
-def query_for_timezone(chat_id: int, db: pymongo.database.Database) -> str:
-    chat_collection = db[CHAT_COLLECTION]
-    query = list(chat_collection.find({"chat_id": chat_id}))
-    return query[0]['timezone']
-
-
-def query_for_chat_id(chat_id: int,
-                      db: pymongo.database.Database) -> List[dict]:
-    '''
-    Returns the chat query with messages that contains the given chat id. By right this should only
-    return a list of 1 entry as chat ids are unique to each chat, but return the entire query regardless
-    '''
-    chat_collection = db[CHAT_COLLECTION]
-    query = list(chat_collection.find({"chat_id": chat_id}))
-    if len(query) == 0:
-        raise AssertionError(
-            "This group chat ID does not exist in the database!")
-
-    return query
-
-
-def query_for_job_id(job_id: str, db: pymongo.database.Database) -> List[dict]:
-    '''
-    Returns the chat query with messages that contains the given job id. By right this should only
-    return a list of 1 entry as job ids are unique to each job, but return the entire query regardless
-    '''
-    chat_collection = db[CHAT_COLLECTION]
-    query = list(chat_collection.find({"reminders.job_id": job_id}))
-    if len(query) == 0:
-        raise AssertionError("No such job exists in this chat")
-
-    return query
-
-
 def delete_chat_collection(chat_id: int,
                            db: pymongo.database.Database) -> List[dict]:
     '''
@@ -233,6 +294,7 @@ def add_chat_collection(chat_id: int, db: pymongo.database.Database) -> None:
     data = {
         "chat_id": chat_id,
         "timezone": "Asia/Singapore",
+        "update_settings": False,
         "reminders_in_construction": [],
         "reminders": []
     }
