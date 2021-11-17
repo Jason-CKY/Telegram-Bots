@@ -9,7 +9,7 @@ from munch import Munch
 logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.DEBUG)
 
-app = FastAPI()
+app = FastAPI(root_path="/modbot")
 
 
 @app.on_event("startup")
@@ -54,11 +54,6 @@ def process_private_message(update: Munch, db: pymongo.database.Database):
 
 
 @app.get("/")
-def root():
-    return {"Hello": "World"}
-
-
-@app.get("/modbot")
 def ngrok_url():
     return {
         "Ngrok url": PUBLIC_URL,
@@ -67,7 +62,7 @@ def ngrok_url():
     }
 
 
-@app.post(f"/modbot/{BOT_TOKEN}")
+@app.post(f"/{BOT_TOKEN}")
 async def respond(request: Request,
                   db: pymongo.database.Database = Depends(get_db)):
     try:

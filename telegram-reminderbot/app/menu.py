@@ -426,3 +426,12 @@ class SettingsMenu:
                          message,
                          reply_markup=markup,
                          parse_mode='html')
+
+class RenewReminderMenu:
+    '''
+    Instantiate a class to handle all the keyboard buttons when displaying a reminder.
+    The buttons will automatically set another once-off reminder at the specified duration.
+    '''
+    def __init__(self, chat_id: int, database: Database):
+        self.chat_id = chat_id
+        self.database = database

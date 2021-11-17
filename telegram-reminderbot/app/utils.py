@@ -3,6 +3,7 @@ from time import time as current_time
 from app.constants import Bot, DAY_OF_WEEK, REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
 from app.command_mappings import COMMANDS
 from app.database import Database, MONGO_DATABASE_URL, MONGO_DB
+from app.menu import RenewReminderMenu
 from munch import Munch
 from app.scheduler import scheduler
 from telegram import ReplyKeyboardRemove
@@ -108,11 +109,10 @@ def create_reminder(chat_id: int, from_user_id: int,
     reminder['reminder_id'] = reminder_id
     job_id = str(current_time()) + "_" + reminder['reminder_text']
     reminder['job_id'] = job_id
-    database.insert_reminder(reminder)
     hour, minute = [int(t) for t in reminder['time'].split(":")]
     add_scheduler_job(reminder, hour, minute, timezone, chat_id, reminder_id,
                       job_id)
-
+    database.insert_reminder(reminder)
 
 def reminder_trigger(chat_id: int, reminder_id: str) -> None:
     with pymongo.MongoClient(MONGO_DATABASE_URL) as client:
@@ -120,6 +120,7 @@ def reminder_trigger(chat_id: int, reminder_id: str) -> None:
         database = Database(chat_id, db)
         reminders = database.query_for_reminders()
         reminder = [r for r in reminders if r['reminder_id'] == reminder_id][0]
+        message, markup, parse_mode = RenewReminderMenu(chat_id, database).build(reminder_id)
         file_id = None
         if 'file_id' in reminder:
             file_id = reminder['file_id']

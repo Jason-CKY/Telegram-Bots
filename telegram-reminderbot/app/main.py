@@ -1,5 +1,5 @@
-import json, pymongo, logging
-from app import utils, database
+import json, pymongo, logging, os
+from app import utils
 from app.command_mappings import COMMANDS
 from app.scheduler import scheduler
 from app.database import get_db, Database
@@ -11,8 +11,7 @@ from munch import Munch
 logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.DEBUG)
 
-app = FastAPI()
-
+app = FastAPI(root_path="/reminderbot")
 
 def process_command(update: Munch, db: pymongo.database.Database) -> None:
     database = Database(update.message.chat.id, db)
@@ -70,11 +69,6 @@ def shutdown_event():
 
 
 @app.get("/")
-def root():
-    return {"Hello": "World"}
-
-
-@app.get("/reminderbot")
 def ngrok_url():
     return {
         "Ngrok url": PUBLIC_URL,
@@ -83,7 +77,7 @@ def ngrok_url():
     }
 
 
-@app.post(f"/reminderbot/{BOT_TOKEN}")
+@app.post(f"/{BOT_TOKEN}")
 async def respond(request: Request,
                   db: pymongo.database.Database = Depends(get_db)):
     try:
