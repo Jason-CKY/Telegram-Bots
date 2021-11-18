@@ -1,5 +1,4 @@
 import re, json, pymongo, uuid, pytz
-from time import time as current_time
 from app.constants import Bot, DAY_OF_WEEK, REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
 from app.command_mappings import COMMANDS
 from app.database import Database, MONGO_DATABASE_URL, MONGO_DB
@@ -51,8 +50,9 @@ def add_scheduler_job(reminder: dict, hour: int, minute: int, timezone: str,
                       chat_id: int, reminder_id: str, job_id: str) -> None:
     if REMINDER_ONCE in reminder['frequency']:
         time_str = f"{reminder['frequency'].split()[1]}-{hour}-{minute}"
-        run_date = pytz.timezone(timezone).localize(
-            datetime.strptime(time_str, "%Y-%m-%d-%H-%M")).astimezone(pytz.utc)
+        # run_date = pytz.timezone(timezone).localize(
+        #     datetime.strptime(time_str, "%Y-%m-%d-%H-%M")).astimezone(pytz.utc)
+        run_date = pytz.utc.localize(datetime.strptime(time_str, "%Y-%m-%d-%H-%M"))
         scheduler.add_job(reminder_trigger,
                           'date',
                           run_date=run_date,
@@ -62,8 +62,9 @@ def add_scheduler_job(reminder: dict, hour: int, minute: int, timezone: str,
         # extract hour and minute
         run_date = datetime.combine(datetime.today(), time(hour, minute))
         run_date = run_date.replace(day=10)
-        run_date = pytz.timezone(timezone).localize(run_date).astimezone(
-            pytz.utc)
+        # run_date = pytz.timezone(timezone).localize(run_date).astimezone(
+        #     pytz.utc)
+        run_date = pytz.utc.localize(run_date)
         scheduler.add_job(reminder_trigger,
                           'cron',
                           day="*",
@@ -75,8 +76,9 @@ def add_scheduler_job(reminder: dict, hour: int, minute: int, timezone: str,
         day = int(reminder['frequency'].split('-')[1])
         run_date = datetime.combine(datetime.today(), time(hour, minute))
         run_date.replace(day=day)
-        run_date = pytz.timezone(timezone).localize(run_date).astimezone(
-            pytz.utc)
+        # run_date = pytz.timezone(timezone).localize(run_date).astimezone(
+        #     pytz.utc)
+        run_date = pytz.utc.localize(run_date)
         scheduler.add_job(reminder_trigger,
                           'cron',
                           week="*",
@@ -89,8 +91,9 @@ def add_scheduler_job(reminder: dict, hour: int, minute: int, timezone: str,
         day = int(reminder['frequency'].split('-')[1])
         run_date = datetime.combine(datetime(year=2021, month=1, day=day),
                                     time(hour, minute))
-        run_date = pytz.timezone(timezone).localize(run_date).astimezone(
-            pytz.utc)
+        # run_date = pytz.timezone(timezone).localize(run_date).astimezone(
+        #     pytz.utc)
+        run_date = pytz.utc.localize(run_date)
         scheduler.add_job(reminder_trigger,
                           'cron',
                           month="*",
@@ -107,29 +110,28 @@ def create_reminder(chat_id: int, from_user_id: int,
     reminder = database.get_reminder_in_construction(from_user_id)
     reminder_id = str(uuid.uuid4())
     reminder['reminder_id'] = reminder_id
-    job_id = str(current_time()) + "_" + reminder['reminder_text']
+    job_id = str(uuid.uuid4())
     reminder['job_id'] = job_id
     hour, minute = [int(t) for t in reminder['time'].split(":")]
     add_scheduler_job(reminder, hour, minute, timezone, chat_id, reminder_id,
                       job_id)
     database.insert_reminder(reminder)
 
+
 def reminder_trigger(chat_id: int, reminder_id: str) -> None:
     with pymongo.MongoClient(MONGO_DATABASE_URL) as client:
         db = client[MONGO_DB]
         database = Database(chat_id, db)
-        reminders = database.query_for_reminders()
-        reminder = [r for r in reminders if r['reminder_id'] == reminder_id][0]
-        message, markup, parse_mode = RenewReminderMenu(chat_id, database).build(reminder_id)
-        file_id = None
+        reminder = database.get_reminder_from_reminder_id(reminder_id)
+        message, markup, parse_mode = RenewReminderMenu(
+            chat_id, database).build(reminder['reminder_text'])
         if 'file_id' in reminder:
             file_id = reminder['file_id']
-        if file_id is not None:
             Bot.send_photo(chat_id,
                            photo=file_id,
-                           caption=f"🖼 {reminder['reminder_text']}")
+                           caption='🖼' + message, reply_markup=markup, parse_mode=parse_mode)
         else:
-            Bot.send_message(chat_id, f"🗓 {reminder['reminder_text']}")
+            Bot.send_message(chat_id, '🗓' + message, reply_markup=markup, parse_mode=parse_mode)
 
         if reminder['frequency'].startswith(REMINDER_ONCE):
             database.delete_reminder(reminder_id)
@@ -169,6 +171,12 @@ def get_migrated_chat_mapping(update: Munch) -> dict:
     supergroup_chat_id = update.message.migrate_to_chat_id
     return {"chat_id": chat_id, "supergroup_chat_id": supergroup_chat_id}
 
+def convert_time_str(time_str: str, timezone: str):
+    '''
+    time_str: 05:22 (hour:minute)
+    '''
+    hour, minute = [int(t) for t in time_str.split(":")]
+    return pytz.utc.localize(datetime.now()).replace(hour=hour, minute=minute).astimezone(pytz.timezone(timezone)).strftime("%H:%M")
 
 def calculate_date(current_datetime: datetime, reminder_time: str) -> date:
     current_time = current_datetime.strftime("%H:%M")

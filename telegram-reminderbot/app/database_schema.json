@@ -18,19 +18,17 @@
     "reminders": [
         {
             "reminder_id": "435217cc-9365-4d65-b887-b26a19fc0f2d",
-            "text": "this is a reminder text with image",
+            "reminder_text": "this is a reminder text with image",
             "file_id": "AgACAgUAAxkBAAIC4GF221tnj06qWnVCs_AHK-OHrdTNAALxrDEbQfOoV9HKf2nxxAjLAQADAgADeQADIQQ",
             "frequency": "Once 2021-12-12",
             "time": "12:45",
-            "started_at": 1634913754.0870788,
             "job_id": "2ecb00df-c653-4254-a0c9-b1e7b6f2f079"
         },
         {
             "reminder_id": "3dea7143-dbb5-41da-b02c-f9f59739397b",
-            "text": "this is a reminder text",
+            "reminder_text": "this is a reminder text",
             "frequency": "Weekly-3",
             "time": "12:45",
-            "started_at": 1634913754.0870788,
             "job_id": "2ecb00df-c653-4254-a0c9-b1e7b6f2f079"
         }
     ]

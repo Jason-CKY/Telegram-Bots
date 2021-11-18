@@ -3,7 +3,7 @@ from app import utils
 from app.command_mappings import COMMANDS
 from app.scheduler import scheduler
 from app.database import get_db, Database
-from app.menu import ListReminderMenu, ReminderBuilder, SettingsMenu
+from app.menu import ListReminderMenu, ReminderBuilder, RenewReminderMenu, SettingsMenu
 from app.constants import Bot, PUBLIC_URL, BOT_TOKEN, DEV_CHAT_ID
 from fastapi import FastAPI, Request, Response, status, Depends
 from munch import Munch
@@ -12,6 +12,7 @@ logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.DEBUG)
 
 app = FastAPI(root_path="/reminderbot")
+
 
 def process_command(update: Munch, db: pymongo.database.Database) -> None:
     database = Database(update.message.chat.id, db)
@@ -36,6 +37,14 @@ def callback_query_handler(update: Munch,
                               c.message.message_id,
                               reply_markup=markup,
                               parse_mode=parse_mode)
+    elif c.data.startswith('renew'):
+        message, markup, parse_mode = RenewReminderMenu(
+            c.message.chat.id, database).process(c)
+        Bot.edit_message_text(message,
+                              c.message.chat.id,
+                              c.message.message_id,
+                              reply_markup=markup,
+                              parse_mode=parse_mode)
 
 
 def process_message(update: Munch, db: pymongo.database.Database) -> None:
@@ -50,6 +59,7 @@ def process_message(update: Munch, db: pymongo.database.Database) -> None:
     if update.message.text == '🚫 Cancel':
         utils.remove_reply_keyboard_markup(update,
                                            message="Operation cancelled.")
+        database.update_chat_settings(update_settings=False)
         database.delete_reminder_in_construction(update.message['from'].id)
     elif database.query_for_chat_id()[0]['update_settings']:
         SettingsMenu(update.message.chat.id,

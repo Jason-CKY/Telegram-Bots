@@ -85,6 +85,12 @@ class Database:
             if r['job_id'] == job_id
         ][0]
 
+    def get_reminder_from_reminder_id(self, reminder_id: str) -> dict:
+        return [
+            r for r in self.query_for_reminders()
+            if r['reminder_id'] == reminder_id
+        ][0]
+
     def get_reminder_in_construction(self, from_user_id: int) -> list:
         reminders_in_construction = self.query_for_reminders_in_construction()
         return [
