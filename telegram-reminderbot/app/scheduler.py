@@ -1,5 +1,6 @@
 import pymongo
 from pytz import utc
+from app.database import MONGO_DATABASE_URL, MONGO_DB, Database
 from app import database, utils
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.mongodb import MongoDBJobStore
@@ -19,10 +20,11 @@ from apscheduler.events import EVENT_JOB_MISSED
 
 
 def listener(event):
-    with pymongo.MongoClient(database.MONGO_DATABASE_URL) as client:
-        db = client[database.MONGO_DB]
-        chat_id = database.get_chat_id_from_job_id(event.job_id, db)
-        reminder_id = database.get_reminder_id_from_job_id(event.job_id, db)
+    with pymongo.MongoClient(MONGO_DATABASE_URL) as client:
+        db = client[MONGO_DB]
+        database = Database(None, db)
+        chat_id = database.get_chat_id_from_job_id(event.job_id)
+        reminder_id = database.get_reminder_id_from_job_id(event.job_id)
 
         utils.reminder_trigger(chat_id, reminder_id)
 

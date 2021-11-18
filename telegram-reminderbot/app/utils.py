@@ -124,7 +124,7 @@ def reminder_trigger(chat_id: int, reminder_id: str) -> None:
         database = Database(chat_id, db)
         reminder = database.get_reminder_from_reminder_id(reminder_id)
         message, markup, parse_mode = RenewReminderMenu(
-            chat_id, database).build(reminder['reminder_text'])
+            chat_id, database).build(reminder['reminder_text'], image='file_id' in reminder.keys())
         if 'file_id' in reminder:
             file_id = reminder['file_id']
             Bot.send_photo(chat_id,
@@ -191,7 +191,8 @@ def calculate_date(current_datetime: datetime, reminder_time: str) -> date:
 '''
 Boolean functions
 '''
-
+def is_photo_message(update: Munch) -> bool:
+    return 'message' in update and 'photo' in update.message
 
 def is_text_message(update: Munch) -> bool:
     '''
@@ -199,6 +200,8 @@ def is_text_message(update: Munch) -> bool:
     '''
     return 'message' in update and 'text' in update.message
 
+def is_callback_query_with_photo(update: Munch) -> bool:
+    return is_callback_query(update) and 'photo' in update.callback_query.message
 
 def is_private_message(update: Munch) -> bool:
     '''

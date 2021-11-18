@@ -40,11 +40,20 @@ def callback_query_handler(update: Munch,
     elif c.data.startswith('renew'):
         message, markup, parse_mode = RenewReminderMenu(
             c.message.chat.id, database).process(c)
-        Bot.edit_message_text(message,
-                              c.message.chat.id,
-                              c.message.message_id,
-                              reply_markup=markup,
-                              parse_mode=parse_mode)
+        if 'file_id' in update.callback_query.message:
+            Bot.edit_message_caption(
+                c.message.chat.id,
+                c.message.message_id,
+                caption=message,
+                reply_markup=markup,
+                parse_mode=parse_mode
+            )
+        else:
+            Bot.edit_message_text(message,
+                                c.message.chat.id,
+                                c.message.message_id,
+                                reply_markup=markup,
+                                parse_mode=parse_mode)
 
 
 def process_message(update: Munch, db: pymongo.database.Database) -> None:
@@ -95,6 +104,17 @@ async def respond(request: Request,
         update = Munch.fromDict(json.loads(req))
         utils.write_json(update, f"/code/app/output.json")
 
+        if utils.is_photo_message(update):
+            update.message.file_id = update.message.photo[-1]['file_id']
+            update.message.text = '' if 'caption' not in update.message else update.message.caption
+            del update.message.photo
+            if 'caption' in update.message:
+                del update.message.caption
+        if utils.is_callback_query_with_photo(update):
+            update.callback_query.message.file_id = update.callback_query.message.photo[-1]['file_id']
+            update.callback_query.message.text = update.callback_query.message.caption
+            del update.callback_query.message.photo
+            del update.callback_query.message.caption
         # TODO: modify this function at the last
         # if utils.group_upgraded_to_supergroup(update):
         #     mapping = utils.get_migrated_chat_mapping(update)

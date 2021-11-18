@@ -192,8 +192,12 @@ class ReminderBuilder:
         else:
             self.database.add_reminder_to_construction(
                 update.message['from'].id)
-            self.database.update_reminder_in_construction(
-                update.message['from'].id, reminder_text=update.message.text)
+            if 'file_id' in update.message:
+                self.database.update_reminder_in_construction(
+                    update.message['from'].id, reminder_text=update.message.text, file_id=update.message.file_id)
+            else:
+                self.database.update_reminder_in_construction(
+                    update.message['from'].id, reminder_text=update.message.text)
             Bot.send_message(update.message.chat.id,
                              "enter reminder time in <HH>:<MM> format.",
                              reply_to_message_id=update.message.message_id,
@@ -246,7 +250,6 @@ class ListReminderMenu:
 
             reminder['printed_frequency'] = _frequency
             reminder_texts.append(reminder)
-            print(reminder)
 
         return reminder_texts
 
@@ -434,7 +437,7 @@ class RenewReminderMenu:
         self.database = database
         self.REMIND_AGAIN_TEXT = '\n\n\nRemind me again in:'
 
-    def renew_reminder(self, minutes: int, reminder_text: str):
+    def renew_reminder(self, minutes: int, reminder_text: str, file_id: str = None):
         reminder_id = str(uuid.uuid4())
         job_id = str(uuid.uuid4())
         timezone = self.database.query_for_timezone()
@@ -451,39 +454,58 @@ class RenewReminderMenu:
             "time": reminder_datetime.strftime('%H:%M'),
             "job_id": job_id
         }
+        if file_id is not None:
+            reminder['field_id'] = file_id
+
         self.database.insert_reminder(reminder)
         reminder_datetime = reminder_datetime.astimezone(pytz.timezone(timezone))
         message = reminder_text + f"\n\n\nI will remind you again on {reminder_datetime.strftime('%a, %-d %B %Y at %H:%M:%S')}"
         return message, None, None
 
-    def process(self, callback_query: dict) -> Tuple[str, InlineKeyboardMarkup, str]:
+    def process(self, callback_query: Munch) -> Tuple[str, InlineKeyboardMarkup, str]:
         _, _time = callback_query.data.split("_")
-
+        field_id = None if 'file_id' not in callback_query.message else callback_query.message.file_id
         reminder_text = callback_query.message.text[1:-len(self.REMIND_AGAIN_TEXT)]
         if _time == '15m':
-            return self.renew_reminder(minutes=15, reminder_text=reminder_text)
+            return self.renew_reminder(minutes=15, reminder_text=reminder_text, file_id=field_id)
         elif _time == '30m':
-            return self.renew_reminder(minutes=30, reminder_text=reminder_text)
+            return self.renew_reminder(minutes=30, reminder_text=reminder_text, file_id=field_id)
         elif _time == '1h':
-            return self.renew_reminder(minutes=60, reminder_text=reminder_text)
+            return self.renew_reminder(minutes=60, reminder_text=reminder_text, file_id=field_id)
         elif _time == '3h':
-            return self.renew_reminder(minutes=180, reminder_text=reminder_text)
+            return self.renew_reminder(minutes=180, reminder_text=reminder_text, file_id=field_id)
         elif _time == '1d':
-            return self.renew_reminder(minutes=24*60, reminder_text=reminder_text)
-        elif _time == 'cancel':
-            return reminder_text, None, None
+            return self.renew_reminder(minutes=24*60, reminder_text=reminder_text, file_id=field_id)
+        elif _time == 'time':
+            callback_query.message['from'] = callback_query['from']
+            ReminderBuilder(self.database).process_message(callback_query)
+            return callback_query.message.text[:-len(self.REMIND_AGAIN_TEXT)], None, None
 
-    def build(self, reminder_text: str):
+        elif _time == 'cancel':
+            return callback_query.message.text[:-len(self.REMIND_AGAIN_TEXT)], None, None
+
+    def build(self, reminder_text: str, image: bool = False):
         message = reminder_text + self.REMIND_AGAIN_TEXT
 
         inline_buttons = []
-        inline_buttons.append([
-            InlineKeyboardButton(text="15m", callback_data="renew_15m"),
-            InlineKeyboardButton(text="30m", callback_data="renew_30m"),
-            InlineKeyboardButton(text="1h", callback_data="renew_1h"),
-            InlineKeyboardButton(text="3h", callback_data="renew_3h"),
-            InlineKeyboardButton(text="1d", callback_data="renew_1d")
-        ])
+        if bool:
+            inline_buttons.append([
+                InlineKeyboardButton(text="15m", callback_data="renew_15m"),
+                InlineKeyboardButton(text="30m", callback_data="renew_30m"),
+            ])
+            inline_buttons.append([
+                InlineKeyboardButton(text="1h", callback_data="renew_1h"),
+                InlineKeyboardButton(text="3h", callback_data="renew_3h"),
+                InlineKeyboardButton(text="1d", callback_data="renew_1d")
+            ])
+        else:
+            inline_buttons.append([
+                InlineKeyboardButton(text="15m", callback_data="renew_15m"),
+                InlineKeyboardButton(text="30m", callback_data="renew_30m"),
+                InlineKeyboardButton(text="1h", callback_data="renew_1h"),
+                InlineKeyboardButton(text="3h", callback_data="renew_3h"),
+                InlineKeyboardButton(text="1d", callback_data="renew_1d")
+            ])
         inline_buttons.append([
             InlineKeyboardButton(text="Enter Time", callback_data="renew_time"),
             InlineKeyboardButton(text="Cancel", callback_data="renew_cancel")
