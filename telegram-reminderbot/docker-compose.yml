@@ -10,7 +10,7 @@ services:
       - reminderbot
     environment:
       NGROK: ngrok-container
-      # BOT_TOKEN: $BOT_TOKEN
+      BOT_TOKEN: $BOT_TOKEN
       DEV_CHAT_ID: $DEV_CHAT_ID
       
       MONGO_USERNAME: $MONGO_USERNAME

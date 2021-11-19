@@ -5,7 +5,7 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 Bot = ExtBot(token=BOT_TOKEN)
 
 PUBLIC_URL = os.getenv('PUBLIC_URL')
-CONFIG_COMMAND_MESSAGE = f"Get configs by typing '/getconfig@{Bot.get_me().username}'. \n" +\
+CONFIG_COMMAND_MESSAGE = f"Get configs by typing '/getconfig'. \n" +\
                         f"Set your own threshold by typing '/setthreshold@{Bot.get_me().username} <number>'\n " +\
                         f"Set your own threshold by typing '/setexpiry@{Bot.get_me().username} <number>'"
 

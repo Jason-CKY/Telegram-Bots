@@ -9,7 +9,7 @@ PUBLIC_URL = os.getenv('PUBLIC_URL')
 START_MESSAGE = f"This bot lets you set reminders! The following commands are available:\n" +\
                 f"/remind sets a reminder.\n" +\
                 f"/list displays all the reminders in the current chat.\n" +\
-                f"/delete deletes a reminder.\n\n\n" +\
+                f"/settings to set timezone.\n\n\n" +\
                 f"Note that all reminders set on this bot can be accessed by the user hosting this bot. Do not set any reminders that contain any sort of private information."
 
 SUPPORT_MESSAGE =   f"My source code is hosted on https://github.com/Jason-CKY/Telegram-Bots/tree/main. Consider \n" +\
