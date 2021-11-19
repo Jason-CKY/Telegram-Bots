@@ -137,12 +137,15 @@ class Database:
         newvalues = {"$push": {"reminders": reminder}}
         self.chat_collection.update_one({"chat_id": self.chat_id}, newvalues)
 
-    def add_reminder_to_construction(self, from_user_id: int) -> None:
+    def add_reminder_to_construction(self, from_user_id: int,
+                                     **kwargs) -> None:
+        reminder_in_construction = {"user_id": from_user_id}
+        for k, v in kwargs.items():
+            reminder_in_construction[k] = v
+
         newvalues = {
             "$push": {
-                "reminders_in_construction": {
-                    "user_id": from_user_id
-                }
+                "reminders_in_construction": reminder_in_construction
             }
         }
         self.chat_collection.update_one({"chat_id": self.chat_id}, newvalues)

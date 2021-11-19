@@ -18,6 +18,7 @@
     "reminders": [
         {
             "reminder_id": "435217cc-9365-4d65-b887-b26a19fc0f2d",
+            "user_id": 403682365,
             "reminder_text": "this is a reminder text with image",
             "file_id": "AgACAgUAAxkBAAIC4GF221tnj06qWnVCs_AHK-OHrdTNAALxrDEbQfOoV9HKf2nxxAjLAQADAgADeQADIQQ",
             "frequency": "Once 2021-12-12",
@@ -26,6 +27,7 @@
         },
         {
             "reminder_id": "3dea7143-dbb5-41da-b02c-f9f59739397b",
+            "user_id": 403682365,
             "reminder_text": "this is a reminder text",
             "frequency": "Weekly-3",
             "time": "12:45",

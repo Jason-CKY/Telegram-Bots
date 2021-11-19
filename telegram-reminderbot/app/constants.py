@@ -16,6 +16,8 @@ SUPPORT_MESSAGE =   f"My source code is hosted on https://github.com/Jason-CKY/T
                     f"Post any issues with this bot on the github link, and feel free to contribute to the source code with a " +\
                     f"pull request."
 
+DEFAULT_SETTINGS_MESSAGE = "The default timezone for the bot is Asia/Singapore (GMT +8). Type /settings for more information on how to change the timezone. "
+
 DEV_CHAT_ID = os.getenv('DEV_CHAT_ID')
 
 DAY_OF_WEEK = {

@@ -52,7 +52,8 @@ def add_scheduler_job(reminder: dict, hour: int, minute: int, timezone: str,
         time_str = f"{reminder['frequency'].split()[1]}-{hour}-{minute}"
         # run_date = pytz.timezone(timezone).localize(
         #     datetime.strptime(time_str, "%Y-%m-%d-%H-%M")).astimezone(pytz.utc)
-        run_date = pytz.utc.localize(datetime.strptime(time_str, "%Y-%m-%d-%H-%M"))
+        run_date = pytz.utc.localize(
+            datetime.strptime(time_str, "%Y-%m-%d-%H-%M"))
         scheduler.add_job(reminder_trigger,
                           'date',
                           run_date=run_date,
@@ -108,11 +109,13 @@ def create_reminder(chat_id: int, from_user_id: int,
                     database: Database) -> None:
     timezone = database.query_for_timezone()
     reminder = database.get_reminder_in_construction(from_user_id)
+    # print(reminder)
     reminder_id = str(uuid.uuid4())
     reminder['reminder_id'] = reminder_id
     job_id = str(uuid.uuid4())
     reminder['job_id'] = job_id
     hour, minute = [int(t) for t in reminder['time'].split(":")]
+    # print(reminder)
     add_scheduler_job(reminder, hour, minute, timezone, chat_id, reminder_id,
                       job_id)
     database.insert_reminder(reminder)
@@ -124,14 +127,20 @@ def reminder_trigger(chat_id: int, reminder_id: str) -> None:
         database = Database(chat_id, db)
         reminder = database.get_reminder_from_reminder_id(reminder_id)
         message, markup, parse_mode = RenewReminderMenu(
-            chat_id, database).build(reminder['reminder_text'], image='file_id' in reminder.keys())
+            chat_id, database).build(reminder['reminder_text'],
+                                     image='file_id' in reminder.keys())
         if 'file_id' in reminder:
             file_id = reminder['file_id']
             Bot.send_photo(chat_id,
                            photo=file_id,
-                           caption='🖼' + message, reply_markup=markup, parse_mode=parse_mode)
+                           caption='🖼' + message,
+                           reply_markup=markup,
+                           parse_mode=parse_mode)
         else:
-            Bot.send_message(chat_id, '🗓' + message, reply_markup=markup, parse_mode=parse_mode)
+            Bot.send_message(chat_id,
+                             '🗓' + message,
+                             reply_markup=markup,
+                             parse_mode=parse_mode)
 
         if reminder['frequency'].startswith(REMINDER_ONCE):
             database.delete_reminder(reminder_id)
@@ -171,12 +180,16 @@ def get_migrated_chat_mapping(update: Munch) -> dict:
     supergroup_chat_id = update.message.migrate_to_chat_id
     return {"chat_id": chat_id, "supergroup_chat_id": supergroup_chat_id}
 
+
 def convert_time_str(time_str: str, timezone: str):
     '''
     time_str: 05:22 (hour:minute)
     '''
     hour, minute = [int(t) for t in time_str.split(":")]
-    return pytz.utc.localize(datetime.now()).replace(hour=hour, minute=minute).astimezone(pytz.timezone(timezone)).strftime("%H:%M")
+    return pytz.utc.localize(datetime.now()).replace(
+        hour=hour,
+        minute=minute).astimezone(pytz.timezone(timezone)).strftime("%H:%M")
+
 
 def calculate_date(current_datetime: datetime, reminder_time: str) -> date:
     current_time = current_datetime.strftime("%H:%M")
@@ -191,8 +204,11 @@ def calculate_date(current_datetime: datetime, reminder_time: str) -> date:
 '''
 Boolean functions
 '''
+
+
 def is_photo_message(update: Munch) -> bool:
     return 'message' in update and 'photo' in update.message
+
 
 def is_text_message(update: Munch) -> bool:
     '''
@@ -200,8 +216,11 @@ def is_text_message(update: Munch) -> bool:
     '''
     return 'message' in update and 'text' in update.message
 
+
 def is_callback_query_with_photo(update: Munch) -> bool:
-    return is_callback_query(update) and 'photo' in update.callback_query.message
+    return is_callback_query(
+        update) and 'photo' in update.callback_query.message
+
 
 def is_private_message(update: Munch) -> bool:
     '''
