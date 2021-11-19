@@ -1,5 +1,5 @@
 MODBOT_VERSION ?= 1.7
-REMINDERBOT_VERSION ?= 1.0
+REMINDERBOT_VERSION ?= 1.2
 
 format: 
 	yapf -i -r -p telegram-reminderbot telegram-modbot
@@ -21,9 +21,6 @@ start-modbot-dev:
 start-reminderbot-dev:
 	docker-compose -f docker-compose.dev.yml up -d
 	cd telegram-reminderbot && docker-compose -f docker-compose.dev.yml up --build -d
-
-build-all:
-	make build-modbot
 
 build-modbot:
 	cd telegram-modbot && docker build --tag jasoncky96/telegram-modbot:latest -f ./compose/Dockerfile .

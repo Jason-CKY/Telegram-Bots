@@ -4,3 +4,4 @@ test.sh
 .env
 telegram-modbot/app/output.json
 telegram-reminderbot/app/output.json
+test.json

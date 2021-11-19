@@ -1,4 +1,5 @@
 import json, pymongo, logging, uuid
+from typing import List
 from starlette.status import HTTP_201_CREATED
 from app import utils, schemas
 from app.command_mappings import COMMANDS
@@ -95,7 +96,7 @@ def ngrok_url():
     }
 
 
-@app.post(f"/{BOT_TOKEN}/reminders",
+@app.post(f"/{BOT_TOKEN}/reminder",
           response_model=schemas.ShowReminder,
           status_code=HTTP_201_CREATED)
 async def insert_reminder(request: schemas.Reminder,
@@ -103,8 +104,8 @@ async def insert_reminder(request: schemas.Reminder,
     if not utils.is_valid_time(request.time):
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail="Invalid time!")
-    if request.frequency.split()[0].split('-')[0] not in [
-            REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
+    if request.frequency.split('-')[0].split()[0] not in [
+            REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
     ]:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -131,6 +132,47 @@ async def insert_reminder(request: schemas.Reminder,
     utils.create_reminder(request.chat_id, request.from_user_id, database)
     database.delete_reminder_in_construction(request.from_user_id)
     return request
+
+@app.post(f"/{BOT_TOKEN}/reminders",
+          response_model=List[schemas.ShowReminder],
+          status_code=HTTP_201_CREATED)
+async def insert_reminders(requests: List[schemas.Reminder],
+                          db: pymongo.database.Database = Depends(get_db)):
+    response = []
+    for request in requests:
+        if not utils.is_valid_time(request.time):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail="Invalid time!")
+        if request.frequency.split('-')[0].split()[0] not in [
+                REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
+        ]:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=
+                f"Invalid frequency. Use either {REMINDER_ONCE}, {REMINDER_DAILY}, {REMINDER_WEEKLY} or {REMINDER_MONTHLY}"
+            )
+        database = Database(request.chat_id, db)
+
+        if not database.is_chat_id_exists():
+            database.add_chat_collection()
+            timezone = request.timezone if request.timezone is not None else 'Asia/Singapore'
+            database.update_chat_settings(timezone=timezone)
+
+        request = Munch.fromDict(request.dict())
+        if request.file_id is None:
+            del request.file_id
+        request.reminder_id = str(uuid.uuid4())
+        request.job_id = str(uuid.uuid4())
+        _reminder = request.copy()
+        if 'timezone' in _reminder.keys():
+            del _reminder['timezone']
+        del _reminder['chat_id']
+        database.add_reminder_to_construction(**_reminder)
+        utils.create_reminder(request.chat_id, request.from_user_id, database)
+        database.delete_reminder_in_construction(request.from_user_id)
+
+        response.append(request)
+    return response
 
 
 @app.post(f"/{BOT_TOKEN}")

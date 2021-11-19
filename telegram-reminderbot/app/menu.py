@@ -232,7 +232,7 @@ class ListReminderMenu:
     def __init__(self,
                  chat_id: int,
                  db: Database,
-                 max_reminders_per_page: int = 7):
+                 max_reminders_per_page: int = 5):
         self.chat_id = chat_id
         self.database = db
         self.max_reminders_per_page = max_reminders_per_page
