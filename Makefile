@@ -5,14 +5,17 @@ format:
 	yapf -i -r -p telegram-reminderbot telegram-modbot
 
 start-prod:
-	docker-compose up -d
-	cd telegram-modbot && docker-compose pull modbot
-	cd telegram-modbot && docker-compose up -d
+	make start-modbot-prod start-reminderbot-prod
 
 start-modbot-prod:
 	docker-compose up -d
 	cd telegram-modbot && docker-compose pull modbot
 	cd telegram-modbot && docker-compose up -d
+
+start-reminderbot-prod:
+	docker-compose up -d
+	cd telegram-reminderbot && docker-compose pull reminderbot
+	cd telegram-reminderbot && docker-compose up -d
 	
 start-modbot-dev:
 	docker-compose -f docker-compose.dev.yml up -d
