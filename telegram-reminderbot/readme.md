@@ -11,8 +11,13 @@ Telegram bot that sends you text/image reminders in both personal message or gro
 
 ## Available commands
 
-- start/help - Help on how to use this Bot
-- remind - Start a reminder
+```text
+/start or /help:    Help on how to use this Bot
+/remind:            Start a reminder
+/list:              Get a list of reminders
+/settings:          View/Change settings
+/support:           Link back to this repo
+```
 
 ## Screenshots
 
