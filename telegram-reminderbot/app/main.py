@@ -1,5 +1,6 @@
-import json, pymongo, logging, uuid
+import json, pymongo, logging, uuid, pytz
 from typing import List
+from datetime import datetime, time
 from starlette.status import HTTP_201_CREATED
 from app import utils, schemas
 from app.command_mappings import COMMANDS
@@ -95,43 +96,30 @@ def ngrok_url():
         "scheduler.get_jobs()": [str(job) for job in scheduler.get_jobs()]
     }
 
-
-@app.post(f"/{BOT_TOKEN}/reminder",
-          response_model=schemas.ShowReminder,
-          status_code=HTTP_201_CREATED)
-async def insert_reminder(request: schemas.Reminder,
-                          db: pymongo.database.Database = Depends(get_db)):
-    if not utils.is_valid_time(request.time):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail="Invalid time!")
-    if request.frequency.split('-')[0].split()[0] not in [
-            REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
-    ]:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=
-            f"Invalid frequency. Use either {REMINDER_ONCE}, {REMINDER_DAILY}, {REMINDER_WEEKLY} or {REMINDER_MONTHLY}"
-        )
-    database = Database(request.chat_id, db)
-
-    if not database.is_chat_id_exists():
-        database.add_chat_collection()
-        timezone = request.timezone if request.timezone is not None else 'Asia/Singapore'
-        database.update_chat_settings(timezone=timezone)
-
-    request = Munch.fromDict(request.dict())
-    if request.file_id is None:
-        del request.file_id
-    request.reminder_id = str(uuid.uuid4())
-    request.job_id = str(uuid.uuid4())
-    _reminder = request.copy()
-    if 'timezone' in _reminder.keys():
-        del _reminder['timezone']
-    del _reminder['chat_id']
-    database.add_reminder_to_construction(**_reminder)
-    utils.create_reminder(request.chat_id, request.from_user_id, database)
-    database.delete_reminder_in_construction(request.from_user_id)
-    return request
+@app.get(f"/{BOT_TOKEN}/reminders", response_model=List[schemas.Reminder], status_code=status.HTTP_200_OK)
+async def get_all_reminders(db: pymongo.database.Database = Depends(get_db)):
+    database = Database(None, db)
+    chats = list(database.chat_collection.find({}))
+    return_reminders = []
+    for chat in chats:
+        chat_id = chat['chat_id']
+        for reminder in chat['reminders']:
+            timezone = reminder['timezone']
+            frequency = reminder['frequency'].split('-')[0].split()[0]
+            hour, minute = [int(t) for t in reminder['time'].split(":")]
+            if frequency ==  REMINDER_ONCE: # , REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY]:
+                reminder['frequency'] = pytz.utc.localize(datetime.strptime(f"{reminder['frequency'].split()[1]}-{hour}-{minute}", "%Y-%m-%d-%H-%M")).astimezone(pytz.timezone(timezone)).strftime(f'{REMINDER_ONCE} %Y-%m-%d')
+            reminder['time'] = utils.convert_time_str(reminder['time'], timezone)
+            return_reminders.append({
+                'chat_id': chat_id,
+                'from_user_id': reminder['user_id'],
+                'reminder_text': reminder['reminder_text'],
+                'file_id': None if 'file_id' not in reminder.keys() else reminder['file_id'],
+                'timezone':  timezone,
+                'frequency': reminder['frequency'],
+                'time': reminder['time']
+            })
+    return return_reminders
 
 @app.post(f"/{BOT_TOKEN}/reminders",
           response_model=List[schemas.ShowReminder],
@@ -157,16 +145,19 @@ async def insert_reminders(requests: List[schemas.Reminder],
             database.add_chat_collection()
             timezone = request.timezone if request.timezone is not None else 'Asia/Singapore'
             database.update_chat_settings(timezone=timezone)
-
+        timezone = database.query_for_timezone()
         request = Munch.fromDict(request.dict())
         if request.file_id is None:
             del request.file_id
         request.reminder_id = str(uuid.uuid4())
         request.job_id = str(uuid.uuid4())
         _reminder = request.copy()
-        if 'timezone' in _reminder.keys():
-            del _reminder['timezone']
         del _reminder['chat_id']
+        frequency = _reminder['frequency'].split('-')[0].split()[0]
+        hour, minute = [int(t) for t in _reminder['time'].split(":")]
+        if frequency ==  REMINDER_ONCE: # , REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY]:
+            _reminder['frequency'] = pytz.timezone(timezone).localize(datetime.strptime(f"{_reminder['frequency'].split()[1]}-{hour}-{minute}", "%Y-%m-%d-%H-%M")).astimezone(pytz.utc).strftime(f'{REMINDER_ONCE} %Y-%m-%d')
+        _reminder['time'] = utils.convert_time_str_back_to_utc(_reminder['time'], timezone)
         database.add_reminder_to_construction(**_reminder)
         utils.create_reminder(request.chat_id, request.from_user_id, database)
         database.delete_reminder_in_construction(request.from_user_id)

@@ -2,6 +2,8 @@
 
 Telegram bot that sends you text/image reminders in both personal message or groups.
 
+All the time information is stored in UTC inside the database, and is converted into the group's timezone when rendering it.
+
 ## Reminder frequencies
 
 - once off reminder

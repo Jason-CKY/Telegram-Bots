@@ -74,31 +74,28 @@ def add_scheduler_job(reminder: dict, hour: int, minute: int, timezone: str,
                           args=[chat_id, reminder_id],
                           id=job_id)
     elif REMINDER_WEEKLY in reminder['frequency']:
-        day = int(reminder['frequency'].split('-')[1])
+        day = int(reminder['frequency'].split('-')[1]) - 1
+        hour, minute = [int(t) for t in convert_time_str(f"{hour}:{minute}", timezone).split(":")]
         run_date = datetime.combine(datetime.today(), time(hour, minute))
-        run_date.replace(day=day)
-        # run_date = pytz.timezone(timezone).localize(run_date).astimezone(
-        #     pytz.utc)
-        run_date = pytz.utc.localize(run_date)
+        run_date = run_date.replace(day=run_date.day - (run_date.weekday() - day))
+        run_date = pytz.timezone(timezone).localize(run_date).astimezone(pytz.utc)
         scheduler.add_job(reminder_trigger,
                           'cron',
                           week="*",
-                          day_of_week=run_date.weekday(),
+                          day_of_week=run_date.weekday(),   # day of week goes from 0-6
                           hour=run_date.hour,
                           minute=run_date.minute,
                           args=[chat_id, reminder_id],
                           id=job_id)
     elif REMINDER_MONTHLY in reminder['frequency']:
         day = int(reminder['frequency'].split('-')[1])
-        run_date = datetime.combine(datetime(year=2021, month=1, day=day),
-                                    time(hour, minute))
-        # run_date = pytz.timezone(timezone).localize(run_date).astimezone(
-        #     pytz.utc)
-        run_date = pytz.utc.localize(run_date)
+        hour, minute = [int(t) for t in convert_time_str(f"{hour}:{minute}", timezone).split(":")]
+        run_date = datetime.combine(datetime.today(), time(hour, minute)).replace(day=day)
+        run_date = pytz.timezone(timezone).localize(run_date).astimezone(pytz.utc)
         scheduler.add_job(reminder_trigger,
                           'cron',
                           month="*",
-                          day=day,
+                          day=run_date.day,
                           hour=run_date.hour,
                           minute=run_date.minute,
                           args=[chat_id, reminder_id],
@@ -109,13 +106,14 @@ def create_reminder(chat_id: int, from_user_id: int,
                     database: Database) -> None:
     timezone = database.query_for_timezone()
     reminder = database.get_reminder_in_construction(from_user_id)
-    # print(reminder)
     reminder_id = str(uuid.uuid4())
     reminder['reminder_id'] = reminder_id
     job_id = str(uuid.uuid4())
     reminder['job_id'] = job_id
     hour, minute = [int(t) for t in reminder['time'].split(":")]
-    # print(reminder)
+    if 'timezone' not in reminder.keys():
+        reminder['timezone'] = timezone
+    timezone = reminder['timezone']
     add_scheduler_job(reminder, hour, minute, timezone, chat_id, reminder_id,
                       job_id)
     database.insert_reminder(reminder)
@@ -183,12 +181,23 @@ def get_migrated_chat_mapping(update: Munch) -> dict:
 
 def convert_time_str(time_str: str, timezone: str):
     '''
+    Convert UTC <HH>:<MM> into timzone specific <HH>:<MM>
     time_str: 05:22 (hour:minute)
     '''
     hour, minute = [int(t) for t in time_str.split(":")]
     return pytz.utc.localize(datetime.now()).replace(
         hour=hour,
         minute=minute).astimezone(pytz.timezone(timezone)).strftime("%H:%M")
+
+def convert_time_str_back_to_utc(time_str: str, timezone: str):
+    '''
+    Convert timezone specific <HH>:<MM> into UTC <HH>:<MM>
+    time_str: 05:22 (hour:minute)
+    '''
+    hour, minute = [int(t) for t in time_str.split(":")]
+    return pytz.timezone(timezone).localize(datetime.now()).replace(
+        hour=hour,
+        minute=minute).astimezone(pytz.utc).strftime("%H:%M")
 
 
 def calculate_date(current_datetime: datetime, reminder_time: str) -> date:

@@ -1,6 +1,6 @@
 import pytz, uuid
 from munch import Munch
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 from app.constants import DAY_OF_WEEK, REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
@@ -251,15 +251,18 @@ class ListReminderMenu:
             elif reminder['frequency'].split('-')[0] == REMINDER_DAILY:
                 _frequency = f"everyday"
             elif reminder['frequency'].split('-')[0] == REMINDER_WEEKLY:
-                day_of_week = int(reminder['frequency'].split('-')[1])
-                for k, v in DAY_OF_WEEK.items():
-                    if day_of_week == v:
-                        day_of_week = k
-
+                day_of_week = int(reminder['frequency'].split('-')[1]) - 1
+                hour, minute = [int(t) for t in utils.convert_time_str(f"{reminder['time']}", reminder['timezone']).split(":")]
+                run_date = datetime.combine(datetime.today(), time(hour, minute))
+                run_date = run_date.replace(day=run_date.day - (run_date.weekday() - day_of_week))
+                run_date = pytz.timezone(reminder['timezone']).localize(run_date).astimezone(pytz.timezone(timezone))
+                day_of_week = run_date.strftime('%A')
                 _frequency = f"every {day_of_week}"
             elif reminder['frequency'].split('-')[0] == REMINDER_MONTHLY:
-                day_of_month = utils.parse_day_of_month(
-                    reminder['frequency'].split('-')[1])
+                day_of_month = reminder['frequency'].split('-')[1]
+                hour, minute = [int(t) for t in utils.convert_time_str(f"{reminder['time']}", reminder['timezone']).split(":")]
+                day_of_month = pytz.timezone(reminder['timezone']).localize(datetime.now().replace(month=1, day=int(day_of_month), hour=hour, minute=minute)).astimezone(pytz.timezone(timezone)).day
+                day_of_month = utils.parse_day_of_month(str(day_of_month))
                 _frequency = f"{day_of_month} of every month"
 
             reminder['printed_frequency'] = _frequency
