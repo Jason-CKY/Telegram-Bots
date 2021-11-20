@@ -74,7 +74,7 @@ def process_message(update: Munch, db: pymongo.database.Database) -> None:
     elif database.query_for_chat_id()[0]['update_settings']:
         SettingsMenu(update.message.chat.id,
                      database).process_message(update.message.text)
-    else:
+    elif database.get_reminder_in_construction(update.message['from'].id) != []:
         ReminderBuilder(database).process_message(update)
 
 
@@ -208,6 +208,6 @@ async def respond(request: Request,
 
     except Exception as e:
         Bot.send_message(DEV_CHAT_ID, getattr(e, 'message', str(e)))
-        # raise
+        raise
 
     return Response(status_code=status.HTTP_200_OK)

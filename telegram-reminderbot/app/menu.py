@@ -52,8 +52,31 @@ class ReminderBuilder:
                 callback_query['from'].id)
 
     def process_message(self, update: Munch) -> None:
+        # any text received by bot with no entry in self.database is treated as reminder text
+        if self.database.is_reminder_text_in_construction(update.message['from'].id):
+            # self.database.add_reminder_to_construction(
+            #     update.message['from'].id)
+            if 'file_id' in update.message:
+                self.database.update_reminder_in_construction(
+                    update.message['from'].id,
+                    reminder_text=update.message.text,
+                    file_id=update.message.file_id)
+            else:
+                self.database.update_reminder_in_construction(
+                    update.message['from'].id,
+                    reminder_text=update.message.text)
+            Bot.send_message(update.message.chat.id,
+                             "enter reminder time in <HH>:<MM> format.",
+                             reply_to_message_id=update.message.message_id,
+                             reply_markup=ReplyKeyboardMarkup(
+                                 resize_keyboard=True,
+                                 one_time_keyboard=True,
+                                 selective=True,
+                                 input_field_placeholder=
+                                 "enter reminder time in <HH>:<MM> format.",
+                                 keyboard=[[KeyboardButton("🚫 Cancel")]]))
         # reminder text -> reminder time -> reminder frequency -> reminder set.
-        if self.database.is_reminder_time_in_construction(
+        elif self.database.is_reminder_time_in_construction(
                 update.message['from'].id):
             if utils.is_valid_time(update.message.text):
                 # update database
@@ -105,7 +128,7 @@ class ReminderBuilder:
                 utils.remove_reply_keyboard_markup(
                     update,
                     message="once-off reminder selected.",
-                    reply_to_message=False)
+                    reply_to_message=True)
                 self.database.update_reminder_in_construction(
                     update.message['from'].id, frequency=REMINDER_ONCE)
                 reminder = self.database.get_reminder_in_construction(
@@ -129,7 +152,7 @@ class ReminderBuilder:
                     update,
                     message=
                     f"✅ Reminder set for every day at {utils.convert_time_str(reminder['time'], self.database.query_for_timezone())}",
-                    reply_to_message=False)
+                    reply_to_message=True)
                 self.database.delete_reminder_in_construction(
                     update.message['from'].id)
 
@@ -190,7 +213,7 @@ class ReminderBuilder:
                         update,
                         message=
                         f"✅ Reminder set for {frequency} at {utils.convert_time_str(reminder['time'], self.database.query_for_timezone())}",
-                        reply_to_message=False)
+                        reply_to_message=True)
                     self.database.delete_reminder_in_construction(
                         update.message['from'].id)
                 else:
@@ -198,29 +221,7 @@ class ReminderBuilder:
                     error_message = "Invalid day of week [1-7]" if reminder[
                         'frequency'] == REMINDER_WEEKLY else "Invalid day of month [1-31]"
                     Bot.send_message(update.message.chat.id, error_message)
-        # any text received by bot with no entry in self.database is treated as reminder text
-        else:
-            self.database.add_reminder_to_construction(
-                update.message['from'].id)
-            if 'file_id' in update.message:
-                self.database.update_reminder_in_construction(
-                    update.message['from'].id,
-                    reminder_text=update.message.text,
-                    file_id=update.message.file_id)
-            else:
-                self.database.update_reminder_in_construction(
-                    update.message['from'].id,
-                    reminder_text=update.message.text)
-            Bot.send_message(update.message.chat.id,
-                             "enter reminder time in <HH>:<MM> format.",
-                             reply_to_message_id=update.message.message_id,
-                             reply_markup=ReplyKeyboardMarkup(
-                                 resize_keyboard=True,
-                                 one_time_keyboard=True,
-                                 selective=True,
-                                 input_field_placeholder=
-                                 "enter reminder time in <HH>:<MM> format.",
-                                 keyboard=[[KeyboardButton("🚫 Cancel")]]))
+
 
 
 class ListReminderMenu:

@@ -26,6 +26,7 @@ def remind(update: Munch, database: Database) -> None:
     Send a message to prompt for reminder text with a force reply.
     Inline keyboard to cancel command.
     '''
+    database.add_reminder_to_construction(update.message['from'].id)
     message = "Please enter reminder text. This bot allows for image reminders as well. Just attach an image and put your reminder text as the caption."
     Bot.send_message(update.message.chat.id,
                      message,

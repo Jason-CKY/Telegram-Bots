@@ -93,20 +93,25 @@ class Database:
 
     def get_reminder_in_construction(self, from_user_id: int) -> list:
         reminders_in_construction = self.query_for_reminders_in_construction()
-        return [
-            r for r in reminders_in_construction
-            if r['user_id'] == from_user_id
-        ][0]
+        reminder_in_construction = [r for r in reminders_in_construction if r['user_id'] == from_user_id]
+        if reminder_in_construction == []:
+            return []
+        return reminder_in_construction[0]
 
     '''
     Boolean functions
     '''
+    def is_reminder_text_in_construction(self, from_user_id: int) -> bool:
+        reminder_in_construction = self.get_reminder_in_construction(
+            from_user_id)
+        if reminder_in_construction == []:
+            return False
+        return 'reminder_text' not in reminder_in_construction
 
     def is_reminder_time_in_construction(self, from_user_id: int) -> bool:
-        try:
-            reminder_in_construction = self.get_reminder_in_construction(
-                from_user_id)
-        except IndexError:
+        reminder_in_construction = self.get_reminder_in_construction(
+            from_user_id)
+        if reminder_in_construction == []:
             return False
         return 'time' not in reminder_in_construction
 
@@ -114,10 +119,9 @@ class Database:
         possible_reminder_frequencies = [
             REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
         ]
-        try:
-            reminder_in_construction = self.get_reminder_in_construction(
-                from_user_id)
-        except IndexError:
+        reminder_in_construction = self.get_reminder_in_construction(
+            from_user_id)
+        if reminder_in_construction == []:
             return False
 
         return 'time' in reminder_in_construction and (
