@@ -284,7 +284,20 @@ class ListReminderMenu:
         elif action == 'delete':
             self.delete_reminder(int(number))
             return self.back_to_list("Reminder has been deleted.")
+        elif action == 'image':
+            return self.show_image(int(number))
 
+    def show_image(self, reminder_num: int):
+        try:
+            reminder = self.get_reminders()[reminder_num - 1]
+        except IndexError:
+            return self.back_to_list("😐 Reminder not found found.")
+        if reminder['file_id'] is None:
+            return self.back_to_list("😐 Reminder has no image")
+        
+        Bot.send_photo(self.chat_id, photo=reminder['file_id'])
+        return self.get_reminder_menu(reminder_num)
+        
     def back_to_list(self,
                      message: str) -> Tuple[str, InlineKeyboardMarkup, str]:
         return message, InlineKeyboardMarkup([[
@@ -329,15 +342,12 @@ class ListReminderMenu:
         message += f"<b>Frequency:</b>\n"
         message += f"{reminder['printed_frequency']} at {utils.convert_time_str(reminder['time'], self.database.query_for_timezone())}"
 
-        markup = InlineKeyboardMarkup([[
-            InlineKeyboardButton(text="Delete",
-                                 callback_data=f"lr_delete_{reminder_num}")
-        ],
-                                       [
-                                           InlineKeyboardButton(
-                                               text="Back to list",
-                                               callback_data="lr_page_1")
-                                       ]])
+        inline_buttons = []
+        inline_buttons.append([InlineKeyboardButton(text="Delete", callback_data=f"lr_delete_{reminder_num}")])
+        if 'file_id' in reminder.keys() and reminder['file_id'] is not None:
+            inline_buttons[0].append(InlineKeyboardButton(text="View image", callback_data=f"lr_image_{reminder_num}"))
+        inline_buttons.append([InlineKeyboardButton(text="Back to list", callback_data="lr_page_1")])
+        markup = InlineKeyboardMarkup(inline_buttons)
         return message, markup, "html"
 
     def page(self, page_num: int) -> Tuple[str, InlineKeyboardMarkup, str]:

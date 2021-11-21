@@ -1,4 +1,5 @@
 import json, pymongo, logging, uuid, pytz
+from telegram.error import BadRequest
 from typing import List
 from datetime import datetime, time
 from starlette.status import HTTP_201_CREATED
@@ -35,11 +36,19 @@ def callback_query_handler(update: Munch,
         '''
         message, markup, parse_mode = ListReminderMenu(
             c.message.chat.id, database).process(c.data)
-        Bot.edit_message_text(message,
-                              c.message.chat.id,
-                              c.message.message_id,
-                              reply_markup=markup,
-                              parse_mode=parse_mode)
+        try:
+            Bot.edit_message_text(message,
+                                c.message.chat.id,
+                                c.message.message_id,
+                                reply_markup=markup,
+                                parse_mode=parse_mode)
+        except BadRequest as e:
+            error_message = str(e)
+            if "Message is not modified" in error_message:
+                pass
+            else:
+                raise
+            
     elif c.data.startswith('renew'):
         message, markup, parse_mode = RenewReminderMenu(
             c.message.chat.id, database).process(c)
@@ -208,6 +217,6 @@ async def respond(request: Request,
 
     except Exception as e:
         Bot.send_message(DEV_CHAT_ID, getattr(e, 'message', str(e)))
-        raise
+        # raise
 
     return Response(status_code=status.HTTP_200_OK)
