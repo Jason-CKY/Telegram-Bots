@@ -1,4 +1,4 @@
-import json, pymongo, logging, uuid, pytz
+import json, pymongo, logging, uuid, pytz, os
 from telegram.error import BadRequest
 from typing import List
 from datetime import datetime, time
@@ -181,7 +181,15 @@ async def respond(request: Request,
     try:
         req = await request.body()
         update = Munch.fromDict(json.loads(req))
-        utils.write_json(update, f"/code/app/output.json")
+        if os.environ['MODE'] == 'DEBUG':
+            utils.write_json(update, f"/code/app/output.json")
+        
+        if 'message' in update:
+            database = Database(update.message.chat.id, db)
+            if not database.is_chat_id_exists():
+                database.add_chat_collection()
+                Bot.send_message(update.message.chat.id,
+                                 DEFAULT_SETTINGS_MESSAGE)
 
         if utils.group_upgraded_to_supergroup(update):
             mapping = utils.get_migrated_chat_mapping(update)
@@ -202,12 +210,6 @@ async def respond(request: Request,
             del update.callback_query.message.caption
 
         if utils.is_valid_command(update):
-            database = Database(update.message.chat.id, db)
-            try:
-                database.query_for_chat_id()
-            except AssertionError:
-                Bot.send_message(update.message.chat.id,
-                                 DEFAULT_SETTINGS_MESSAGE)
             process_command(update, db)
         elif utils.is_text_message(update):
             # this will be a normal text message if pm, and any text messages that is a reply to bot in group due to bot privacy setting

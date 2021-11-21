@@ -13,6 +13,7 @@ services:
     environment:
       NGROK: ngrok-container
       BOT_TOKEN: $DEVBOT_TOKEN
+      MODE: DEBUG
       DEV_CHAT_ID: $DEV_CHAT_ID
 
       MONGO_USERNAME: $MONGO_USERNAME

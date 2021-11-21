@@ -1,4 +1,4 @@
-import json, pymongo, logging
+import json, pymongo, logging, os
 from app import utils, commands, database
 from app.scheduler import scheduler
 from app.database import get_db
@@ -69,7 +69,9 @@ async def respond(request: Request,
         req = await request.body()
         update = json.loads(req)
         update = Munch.fromDict(update)
-        utils.write_json(update, f"/code/app/output.json")
+        if os.environ['MODE'] == 'DEBUG':
+            utils.write_json(update, f"/code/app/output.json")
+            
         # TODO: find a way to schedule tasks
         if utils.group_upgraded_to_supergroup(update):
             mapping = utils.get_migrated_chat_mapping(update)

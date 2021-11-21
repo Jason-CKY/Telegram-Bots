@@ -14,6 +14,7 @@ services:
       - reminderbot
     environment:
       NGROK: ngrok-container
+      MODE: DEBUG
       BOT_TOKEN: $DEVBOT_TOKEN
       DEV_CHAT_ID: $DEV_CHAT_ID
 
