@@ -1,7 +1,7 @@
 import pytz, uuid
 from munch import Munch
 from datetime import datetime, timedelta, time
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, ForceReply
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 from app.constants import DAY_OF_WEEK, REMINDER_ONCE, REMINDER_DAILY, REMINDER_WEEKLY, REMINDER_MONTHLY
 from app import utils
@@ -54,8 +54,6 @@ class ReminderBuilder:
     def process_message(self, update: Munch) -> None:
         # any text received by bot with no entry in self.database is treated as reminder text
         if self.database.is_reminder_text_in_construction(update.message['from'].id):
-            # self.database.add_reminder_to_construction(
-            #     update.message['from'].id)
             if 'file_id' in update.message:
                 self.database.update_reminder_in_construction(
                     update.message['from'].id,
@@ -65,16 +63,21 @@ class ReminderBuilder:
                 self.database.update_reminder_in_construction(
                     update.message['from'].id,
                     reminder_text=update.message.text)
-            Bot.send_message(update.message.chat.id,
-                             "enter reminder time in <HH>:<MM> format.",
-                             reply_to_message_id=update.message.message_id,
-                             reply_markup=ReplyKeyboardMarkup(
-                                 resize_keyboard=True,
-                                 one_time_keyboard=True,
-                                 selective=True,
-                                 input_field_placeholder=
-                                 "enter reminder time in <HH>:<MM> format.",
-                                 keyboard=[[KeyboardButton("🚫 Cancel")]]))
+            if 'from' in update:
+                Bot.send_message(update.message.chat.id,
+                                f"@{update.message['from'].username} enter reminder time in <HH>:<MM> format.",
+                                reply_markup=ForceReply(selective=True))
+            else:
+                Bot.send_message(update.message.chat.id,
+                                "enter reminder time in <HH>:<MM> format.",
+                                reply_to_message_id=update.message.message_id,
+                                reply_markup=ReplyKeyboardMarkup(
+                                    resize_keyboard=True,
+                                    one_time_keyboard=True,
+                                    selective=True,
+                                    input_field_placeholder=
+                                    "enter reminder time in <HH>:<MM> format.",
+                                    keyboard=[[KeyboardButton("🚫 Cancel")]]))
         # reminder text -> reminder time -> reminder frequency -> reminder set.
         elif self.database.is_reminder_time_in_construction(
                 update.message['from'].id):
@@ -458,6 +461,7 @@ class RenewReminderMenu:
     def renew_reminder(self,
                        minutes: int,
                        reminder_text: str,
+                       from_user_id: int,
                        file_id: str = None):
         reminder_id = str(uuid.uuid4())
         job_id = str(uuid.uuid4())
@@ -471,14 +475,15 @@ class RenewReminderMenu:
                           id=job_id)
         reminder = {
             "reminder_id": reminder_id,
+            "from_user_id": from_user_id,
             "reminder_text": reminder_text,
+            "file_id": file_id,
+            "timezone": timezone,
             "frequency":
             reminder_datetime.strftime(f'{REMINDER_ONCE} %Y-%m-%d'),
             "time": reminder_datetime.strftime('%H:%M'),
             "job_id": job_id
         }
-        if file_id is not None:
-            reminder['field_id'] = file_id
 
         self.database.insert_reminder(reminder)
         reminder_datetime = reminder_datetime.astimezone(
@@ -490,34 +495,42 @@ class RenewReminderMenu:
             self,
             callback_query: Munch) -> Tuple[str, InlineKeyboardMarkup, str]:
         _, _time = callback_query.data.split("_")
-        field_id = None if 'file_id' not in callback_query.message else callback_query.message.file_id
+        file_id = None if 'file_id' not in callback_query.message else callback_query.message.file_id
+        from_user_id = callback_query['from'].id
         reminder_text = callback_query.message.text[1:-len(self.
                                                            REMIND_AGAIN_TEXT)]
         if _time == '15m':
             return self.renew_reminder(minutes=15,
                                        reminder_text=reminder_text,
-                                       file_id=field_id)
+                                       from_user_id = from_user_id,
+                                       file_id=file_id)
         elif _time == '30m':
             return self.renew_reminder(minutes=30,
                                        reminder_text=reminder_text,
-                                       file_id=field_id)
+                                       from_user_id = from_user_id,
+                                       file_id=file_id)
         elif _time == '1h':
             return self.renew_reminder(minutes=60,
                                        reminder_text=reminder_text,
-                                       file_id=field_id)
+                                       from_user_id = from_user_id,
+                                       file_id=file_id)
         elif _time == '3h':
             return self.renew_reminder(minutes=180,
                                        reminder_text=reminder_text,
-                                       file_id=field_id)
+                                       from_user_id = from_user_id,
+                                       file_id=file_id)
         elif _time == '1d':
             return self.renew_reminder(minutes=24 * 60,
                                        reminder_text=reminder_text,
-                                       file_id=field_id)
+                                       from_user_id = from_user_id,
+                                       file_id=file_id)
         elif _time == 'time':
             callback_query.message['from'] = callback_query['from']
+            message = callback_query.message.text[:-len(self.REMIND_AGAIN_TEXT)]
+            callback_query.message.text = message[1:]
+            self.database.add_reminder_to_construction(callback_query.message['from'].id)
             ReminderBuilder(self.database).process_message(callback_query)
-            return callback_query.message.text[:-len(self.REMIND_AGAIN_TEXT
-                                                     )], None, None
+            return message, None, None
 
         elif _time == 'cancel':
             return callback_query.message.text[:-len(self.REMIND_AGAIN_TEXT
