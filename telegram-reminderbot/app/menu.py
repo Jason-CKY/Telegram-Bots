@@ -344,7 +344,7 @@ class ListReminderMenu:
 
         inline_buttons = []
         inline_buttons.append([InlineKeyboardButton(text="Delete", callback_data=f"lr_delete_{reminder_num}")])
-        if 'file_id' in reminder.keys() and reminder['file_id'] is not None:
+        if 'file_id' in reminder.keys():
             inline_buttons[0].append(InlineKeyboardButton(text="View image", callback_data=f"lr_image_{reminder_num}"))
         inline_buttons.append([InlineKeyboardButton(text="Back to list", callback_data="lr_page_1")])
         markup = InlineKeyboardMarkup(inline_buttons)
@@ -485,15 +485,17 @@ class RenewReminderMenu:
                           id=job_id)
         reminder = {
             "reminder_id": reminder_id,
-            "from_user_id": from_user_id,
+            "user_id": from_user_id,
             "reminder_text": reminder_text,
-            "file_id": file_id,
             "timezone": timezone,
             "frequency":
             reminder_datetime.strftime(f'{REMINDER_ONCE} %Y-%m-%d'),
             "time": reminder_datetime.strftime('%H:%M'),
             "job_id": job_id
         }
+
+        if file_id is not None:
+            reminder['file_id'] = file_id
 
         self.database.insert_reminder(reminder)
         reminder_datetime = reminder_datetime.astimezone(
