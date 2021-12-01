@@ -1,5 +1,5 @@
-MODBOT_VERSION ?= 1.8
-REMINDERBOT_VERSION ?= 1.9
+MODBOT_VERSION ?= 1.9
+REMINDERBOT_VERSION ?= 1.10
 
 format: 
 	yapf -i -r -p telegram-reminderbot telegram-modbot

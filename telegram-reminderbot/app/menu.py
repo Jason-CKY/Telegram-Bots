@@ -257,7 +257,7 @@ class ListReminderMenu:
             elif reminder['frequency'].split('-')[0] == REMINDER_WEEKLY:
                 day_of_week = int(reminder['frequency'].split('-')[1]) - 1
                 hour, minute = [int(t) for t in utils.convert_time_str(f"{reminder['time']}", reminder['timezone']).split(":")]
-                run_date = datetime.combine(datetime.today(), time(hour, minute))
+                run_date = datetime.combine(datetime.today(), time(hour, minute)).replace(day=20) # middle of the month so that the next calculation won't end with negative day
                 run_date = run_date.replace(day=run_date.day - (run_date.weekday() - day_of_week))
                 run_date = pytz.timezone(reminder['timezone']).localize(run_date).astimezone(pytz.timezone(timezone))
                 day_of_week = run_date.strftime('%A')

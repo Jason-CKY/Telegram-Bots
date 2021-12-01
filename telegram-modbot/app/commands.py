@@ -43,7 +43,7 @@ def delete(update: Munch, db: pymongo.database.Database) -> None:
         else:
             expiry, threshold = database.get_config(update.message.chat.id, db)
             question = f'Poll to delete the message above. This poll will last for {expiry} seconds, ' + \
-                            f'if >={threshold} of the group members vote to delete within {expiry} seconds, the replied' + \
+                            f'if >={threshold} of the group members vote to delete within {expiry} seconds, the replied ' + \
                             f'message shall be deleted.'
 
             kwargs = {
