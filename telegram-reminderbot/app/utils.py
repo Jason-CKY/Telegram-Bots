@@ -50,8 +50,6 @@ def add_scheduler_job(reminder: dict, hour: int, minute: int, timezone: str,
                       chat_id: int, reminder_id: str, job_id: str) -> None:
     if REMINDER_ONCE in reminder['frequency']:
         time_str = f"{reminder['frequency'].split()[1]}-{hour}-{minute}"
-        # run_date = pytz.timezone(timezone).localize(
-        #     datetime.strptime(time_str, "%Y-%m-%d-%H-%M")).astimezone(pytz.utc)
         run_date = pytz.utc.localize(
             datetime.strptime(time_str, "%Y-%m-%d-%H-%M"))
         scheduler.add_job(reminder_trigger,
@@ -61,10 +59,7 @@ def add_scheduler_job(reminder: dict, hour: int, minute: int, timezone: str,
                           id=job_id)
     elif REMINDER_DAILY in reminder['frequency']:
         # extract hour and minute
-        run_date = datetime.combine(datetime.today(), time(hour, minute))
-        run_date = run_date.replace(day=10)
-        # run_date = pytz.timezone(timezone).localize(run_date).astimezone(
-        #     pytz.utc)
+        run_date = datetime.combine(datetime.today(), time(hour, minute)).replace(day=10)
         run_date = pytz.utc.localize(run_date)
         scheduler.add_job(reminder_trigger,
                           'cron',
@@ -76,7 +71,7 @@ def add_scheduler_job(reminder: dict, hour: int, minute: int, timezone: str,
     elif REMINDER_WEEKLY in reminder['frequency']:
         day = int(reminder['frequency'].split('-')[1]) - 1
         hour, minute = [int(t) for t in convert_time_str(f"{hour}:{minute}", timezone).split(":")]
-        run_date = datetime.combine(datetime.today(), time(hour, minute))
+        run_date = datetime.combine(datetime.today(), time(hour, minute)).replace(day=20) # middle of the month so that the next calculation won't end with negative day
         run_date = run_date.replace(day=run_date.day - (run_date.weekday() - day))
         run_date = pytz.timezone(timezone).localize(run_date).astimezone(pytz.utc)
         scheduler.add_job(reminder_trigger,
