@@ -13,6 +13,7 @@ class Reminder(BaseModel):
     "time": "12:45",
     "job_id": "2ecb00df-c653-4254-a0c9-b1e7b6f2f079"
     '''
+    reminder_id: Optional[str]
     chat_id: int
     from_user_id: int
     reminder_text: str
@@ -47,7 +48,6 @@ class ShowReminder(Reminder):
     "time": "12:45",
     "job_id": "2ecb00df-c653-4254-a0c9-b1e7b6f2f079"
     '''
-    reminder_id: str
     job_id: str
 
     class Config():

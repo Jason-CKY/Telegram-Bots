@@ -55,6 +55,16 @@ class Database:
 
         return query
 
+    def query_for_reminder_id(self, reminder_id: str) -> List[dict]:
+        '''
+        Returns the chat query with messages that contains the given reminder id. By right this should only
+        return a list of 1 entry as job ids are unique to each job, but return the entire query regardless
+        '''
+        query = list(self.chat_collection.find({"reminders.reminder_id": reminder_id}))
+        if len(query) == 0:
+            raise AssertionError("No such job exists in this chat")
+        return query
+
     def query_for_job_id(self, job_id: str) -> List[dict]:
         '''
         Returns the chat query with messages that contains the given job id. By right this should only

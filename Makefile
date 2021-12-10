@@ -1,5 +1,5 @@
 MODBOT_VERSION ?= 1.9
-REMINDERBOT_VERSION ?= 1.11
+REMINDERBOT_VERSION ?= 1.12
 
 format: 
 	yapf -i -r -p telegram-reminderbot telegram-modbot
@@ -50,15 +50,7 @@ stop-modbot:
 stop-reminderbot:
 	cd telegram-reminderbot && docker-compose down
 	
-destroy-all:
+destroy:
 	cd telegram-modbot && docker-compose down -v
-	cd telegram-reminderbot && docker-compose down -v
-	docker-compose down -v
-
-destroy-modbot:
-	cd telegram-modbot && docker-compose down -v
-	docker-compose down -v
-
-destroy-reminderbot:
 	cd telegram-reminderbot && docker-compose down -v
 	docker-compose down -v

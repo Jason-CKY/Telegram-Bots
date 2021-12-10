@@ -105,7 +105,18 @@ def ngrok_url():
         "scheduler.get_jobs()": [str(job) for job in scheduler.get_jobs()]
     }
 
-@app.get(f"/{BOT_TOKEN}/reminders", response_model=List[schemas.Reminder], status_code=status.HTTP_200_OK)
+@app.delete("/reminder/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_reminder(id: str, db: pymongo.database.Database = Depends(get_db)):
+    database = Database(None, db)
+    try:
+        database.chat_id = database.query_for_reminder_id(id)[0]['chat_id']
+    except AssertionError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="no such reminderid found")
+
+    database.delete_reminder(id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@app.get("/reminders", response_model=List[schemas.Reminder], status_code=status.HTTP_200_OK)
 async def get_all_reminders(db: pymongo.database.Database = Depends(get_db)):
     database = Database(None, db)
     chats = list(database.chat_collection.find({}))
@@ -120,6 +131,7 @@ async def get_all_reminders(db: pymongo.database.Database = Depends(get_db)):
                 reminder['frequency'] = pytz.utc.localize(datetime.strptime(f"{reminder['frequency'].split()[1]}-{hour}-{minute}", "%Y-%m-%d-%H-%M")).astimezone(pytz.timezone(timezone)).strftime(f'{REMINDER_ONCE} %Y-%m-%d')
             reminder['time'] = utils.convert_time_str(reminder['time'], timezone)
             return_reminders.append({
+                'reminder_id': reminder['reminder_id'],
                 'chat_id': chat_id,
                 'from_user_id': reminder['user_id'],
                 'reminder_text': reminder['reminder_text'],
@@ -130,7 +142,7 @@ async def get_all_reminders(db: pymongo.database.Database = Depends(get_db)):
             })
     return return_reminders
 
-@app.post(f"/{BOT_TOKEN}/reminders",
+@app.post("/reminders",
           response_model=List[schemas.ShowReminder],
           status_code=HTTP_201_CREATED)
 async def insert_reminders(requests: List[schemas.Reminder],
