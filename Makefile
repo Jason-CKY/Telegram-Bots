@@ -1,6 +1,6 @@
 MODBOT_VERSION ?= 1.9
 REMINDERBOT_VERSION ?= 1.12
-BACKUP_DIR ?= ~/backup
+BACKUP_DIR ?= $(BACKUP_DIR)
 
 format: 
 	yapf -i -r -p telegram-reminderbot telegram-modbot
@@ -20,16 +20,16 @@ backup-modbot:
 restore-backup-all: restore-backup-reminderbot restore-backup-modbot
 
 restore-backup-reminderbot:
-	ls ~/backup | grep reminderbot-backup.tar
+	ls $(BACKUP_DIR) | grep reminderbot-backup.tar
 	docker volume rm telegram-reminderbot_reminderbot-db
 	docker volume create telegram-reminderbot_reminderbot-db
 	docker run --rm -v telegram-reminderbot_reminderbot-db:/recover -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /recover && tar xvf /backup/reminderbot-backup.tar"
 
 restore-backup-modbot:
-	ls ~/backup | grep modbot-backup.tar
+	ls $(BACKUP_DIR) | grep modbot-backup.tar
 	docker volume rm telegram-modbot_modbot-db
 	docker volume create telegram-modbot_modbot-db
-	docker run --rm -v telegram-modbot_modbot-db:/recover -v ~/backup:/backup ubuntu bash -c "cd /recover && tar xvf /backup/modbot-backup.tar"
+	docker run --rm -v telegram-modbot_modbot-db:/recover -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /recover && tar xvf /backup/modbot-backup.tar"
 
 start-prod:
 	make start-modbot-prod start-reminderbot-prod
