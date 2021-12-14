@@ -1,6 +1,6 @@
 MODBOT_VERSION ?= 1.9
 REMINDERBOT_VERSION ?= 1.12
-BACKUP_DIR ?= $(BACKUP_DIR)
+BACKUP_DIR ?= ~/backup
 
 format: 
 	yapf -i -r -p telegram-reminderbot telegram-modbot
@@ -21,18 +21,15 @@ restore-backup-all: restore-backup-reminderbot restore-backup-modbot
 
 restore-backup-reminderbot:
 	ls $(BACKUP_DIR) | grep reminderbot-backup.tar
-	docker volume rm telegram-reminderbot_reminderbot-db
 	docker volume create telegram-reminderbot_reminderbot-db
 	docker run --rm -v telegram-reminderbot_reminderbot-db:/recover -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /recover && tar xvf /backup/reminderbot-backup.tar"
 
 restore-backup-modbot:
 	ls $(BACKUP_DIR) | grep modbot-backup.tar
-	docker volume rm telegram-modbot_modbot-db
 	docker volume create telegram-modbot_modbot-db
 	docker run --rm -v telegram-modbot_modbot-db:/recover -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /recover && tar xvf /backup/modbot-backup.tar"
 
-start-prod:
-	make start-modbot-prod start-reminderbot-prod
+start-prod: start-modbot-prod start-reminderbot-prod
 
 start-modbot-prod:
 	docker-compose up -d
@@ -66,9 +63,7 @@ deploy-reminderbot-image:
 	cd telegram-reminderbot && docker buildx build --push --tag jasoncky96/telegram-reminderbot:$(REMINDERBOT_VERSION) --file ./compose/Dockerfile --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
 	cd telegram-reminderbot && docker buildx build --push --tag jasoncky96/telegram-reminderbot:latest --file ./compose/Dockerfile --platform linux/arm/v7,linux/arm64/v8,linux/amd64 .
 
-stop-all:
-	make stop-modbot
-	make stop-reminderbot
+stop-all: stop-modbot stop-reminderbot
 	docker-compose down
 
 stop-modbot:
