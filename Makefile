@@ -8,14 +8,14 @@ format:
 backup-all: backup-reminderbot backup-modbot
 
 backup-reminderbot:
-	docker stop telegram-reminderbot-reminderbot-1
+	docker stop telegram-reminderbot-reminderbot-1 telegram-reminderbot-db-1
 	docker run --rm --volumes-from telegram-reminderbot-db-1 -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /data/db && tar cvf /backup/reminderbot-backup.tar ."
-	docker start telegram-reminderbot-reminderbot-1
+	docker start telegram-reminderbot-reminderbot-1 telegram-reminderbot-db-1
 
 backup-modbot:
-	docker stop telegram-modbot-modbot-1
+	docker stop telegram-modbot-modbot-1 telegram-modbot-db-1
 	docker run --rm --volumes-from telegram-modbot-db-1 -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /data/db && tar cvf /backup/modbot-backup.tar ."
-	docker start telegram-modbot-modbot-1
+	docker start telegram-modbot-modbot-1 telegram-modbot-db-1
 
 restore-backup-all: restore-backup-reminderbot restore-backup-modbot
 
