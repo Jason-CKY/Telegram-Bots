@@ -76,3 +76,5 @@ destroy:
 	cd telegram-modbot && docker-compose down -v
 	cd telegram-reminderbot && docker-compose down -v
 	docker-compose down -v
+	-docker volume rm telegram-modbot_modbot-db
+	-docker volume rm telegram-reminderbot_reminderbot-db
