@@ -3,6 +3,7 @@ version: '3.7'
 services:
   modbot:
     image: jasoncky96/telegram-modbot:latest
+    container_name: modbot
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
     restart: always
     networks:
@@ -24,6 +25,7 @@ services:
 
   db:
     image: mongo:4.4.9-focal
+    container_name: modbot_db
     restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: $MONGO_USERNAME
