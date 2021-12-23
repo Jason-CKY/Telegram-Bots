@@ -1,6 +1,8 @@
 MODBOT_VERSION ?= 1.9
 REMINDERBOT_VERSION ?= 1.12
 BACKUP_DIR ?= ~/backup
+REMINDERBOT_BACKUP_FILE ?= reminderbot-backup.tar
+MODBOT_BACKUP_FILE ?= modbot-backup.tar
 
 format: 
 	yapf -i -r -p telegram-reminderbot telegram-modbot
@@ -9,12 +11,12 @@ backup-all: backup-reminderbot backup-modbot
 
 backup-reminderbot:
 	docker stop telegram-reminderbot-reminderbot-1 telegram-reminderbot-db-1
-	docker run --rm --volumes-from telegram-reminderbot-db-1 -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /data/db && tar cvf /backup/reminderbot-backup.tar ."
+	docker run --rm --volumes-from telegram-reminderbot-db-1 -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /data/db && tar cvf /backup/$(REMINDERBOT_BACKUP_FILE) ."
 	docker start telegram-reminderbot-reminderbot-1 telegram-reminderbot-db-1
 
 backup-modbot:
 	docker stop telegram-modbot-modbot-1 telegram-modbot-db-1
-	docker run --rm --volumes-from telegram-modbot-db-1 -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /data/db && tar cvf /backup/modbot-backup.tar ."
+	docker run --rm --volumes-from telegram-modbot-db-1 -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /data/db && tar cvf /backup/$(MODBOT_BACKUP_FILE) ."
 	docker start telegram-modbot-modbot-1 telegram-modbot-db-1
 
 restore-backup-all: restore-backup-reminderbot restore-backup-modbot
