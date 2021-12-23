@@ -12,7 +12,7 @@ backup-all: backup-reminderbot backup-modbot
 backup-reminderbot:
 	docker stop reminderbot reminderbot_db
 	docker run --rm --volumes-from reminderbot_db -v $(BACKUP_DIR):/backup ubuntu bash -c "cd /data/db && tar cvf /backup/$(REMINDERBOT_BACKUP_FILE) ."
-	docker start telegram-reminderbot_reminderbot_1 reminderbot_db
+	docker start reminderbot reminderbot_db
 
 backup-modbot:
 	docker stop modbot modbot_db
