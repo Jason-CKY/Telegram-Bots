@@ -286,6 +286,14 @@ class ListReminderMenu:
             return self.back_to_list("Reminder has been deleted.")
         elif action == 'image':
             return self.show_image(int(number))
+        elif action == 'edit':
+            return self.edit_reminder(int(number))
+        elif action == 'edittext':
+            return self.edit_reminder_text(int(number))
+        elif action == 'edittime':
+            self.edit_reminder_time(int(number))
+        elif action == 'editpicture':
+            self.edit_reminder_picture(int(number))
 
     def show_image(self, reminder_num: int):
         try:
@@ -327,7 +335,7 @@ class ListReminderMenu:
         try:
             reminder = self.get_reminders()[reminder_num - 1]
         except IndexError:
-            return self.back_to_list("😐 Reminder not found found.")
+            return self.back_to_list("😐 Reminder not found.")
 
         timezone = self.database.query_for_timezone()
         next_trigger_time = scheduler.get_job(
@@ -343,7 +351,7 @@ class ListReminderMenu:
         message += f"{reminder['printed_frequency']} at {utils.convert_time_str(reminder['time'], self.database.query_for_timezone())}"
 
         inline_buttons = []
-        inline_buttons.append([InlineKeyboardButton(text="Delete", callback_data=f"lr_delete_{reminder_num}")])
+        inline_buttons.append([InlineKeyboardButton(text="Delete", callback_data=f"lr_delete_{reminder_num}"), InlineKeyboardButton(text="Edit", callback_data=f"lr_edit_{reminder_num}")])
         if 'file_id' in reminder.keys():
             inline_buttons[0].append(InlineKeyboardButton(text="View image", callback_data=f"lr_image_{reminder_num}"))
         inline_buttons.append([InlineKeyboardButton(text="Back to list", callback_data="lr_page_1")])
@@ -388,6 +396,32 @@ class ListReminderMenu:
 
         return message, markup, 'html'
 
+    def edit_reminder(self, reminder_num: int):
+        message, _, _ =  self.get_reminder_menu(reminder_num)
+        inline_buttons = []
+        inline_buttons.append([InlineKeyboardButton(text="Edit text", callback_data=f"lr_edittext_{reminder_num}"), 
+                                InlineKeyboardButton(text="Edit time/schedule", callback_data=f"lr_edittime_{reminder_num}"),
+                                InlineKeyboardButton(text="Add/Edit picture", callback_data=f"lr_editpicture_{reminder_num}")])
+        inline_buttons.append([InlineKeyboardButton(text="Back", callback_data=f"lr_reminder_{reminder_num}")])
+        return message, InlineKeyboardMarkup(inline_buttons), "html"
+
+    def edit_reminder_text(self, reminder_num: int):
+        # TODO: remove reply keyboard
+        # TODO: add reminder in construction with special 'edit' key {'edit': 'text', 'job_id': job_id}
+        # TODO: send force reply text to get new reminder text
+        raise NotImplementedError
+
+    def edit_reminder_picture(self, reminder_num: int):
+        # TODO: remove reply keyboard
+        # TODO: add reminder in construction with special 'edit' key {'edit': 'picture', 'job_id': job_id}
+        # TODO: send force reply text to get new picture
+        raise NotImplementedError
+
+    def edit_reminder_time(self, reminder_num: int):
+        # TODO: remove reply keyboard
+        # TODO: add reminder in construction with special 'edit' key {'edit': 'frequency', 'job_id': job_id}
+        # TODO: ReminderBuilder(self.database).process_message(callback_query)
+        raise NotImplementedError
 
 class SettingsMenu:
     '''
